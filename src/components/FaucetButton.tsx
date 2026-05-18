@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Sparkles } from 'lucide-react';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
+import { useParticles } from './ParticlesProvider';
+import { sfx } from '@/lib/sfx';
 
 const FAUCET_KEY = 'hodlville_faucet_last';
 const FAUCET_COOLDOWN = 24 * 60 * 60 * 1000; // 24h
@@ -11,6 +13,7 @@ const FAUCET_AMOUNT = () => Math.floor(Math.random() * 26) + 25; // 25-50 coins
 
 export default function FaucetButton() {
   const { coins, addCoins } = usePortfolioStore();
+  const { burst, floatText } = useParticles();
   const [canClaim, setCanClaim] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
   const [claimed, setClaimed] = useState(0);
@@ -45,6 +48,10 @@ export default function FaucetButton() {
     setTimeLeft('24h 0m');
     setClaimed(amount);
     setShowParticles(true);
+    // Canvas coin burst
+    burst({ kind: 'coins', x: window.innerWidth / 2, y: window.innerHeight / 2, count: 20, spread: 4 });
+    floatText(window.innerWidth / 2, window.innerHeight / 2 - 40, `+$${amount}`, '#fbbf24');
+    sfx.coinClaim();
     setTimeout(() => {
       setShowParticles(false);
       setClaimed(0);

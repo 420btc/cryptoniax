@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/hooks/useAuth';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import Chart from './Chart';
 import LossOverlay from './LossOverlay';
+import { useParticles } from './ParticlesProvider';
+import { sfx } from '@/lib/sfx';
 import { CRYPTO_SYMBOLS, CryptoSymbol, ExchangeType, EXCHANGE_THEMES } from '@/types';
 import {
   Activity, TrendingUp, BarChart3, Wallet, Clock, Zap, ArrowUpRight, ArrowDownRight,
@@ -21,6 +23,9 @@ const pulse = { animate: { scale: [1, 1.02, 1], transition: { duration: 2, repea
 export default function TradePanel() {
   const { profile } = useAuthStore();
   const { trades, activeTrades, closedTrades, coins, level, xp, house, openTrade, checkTradeLimits } = usePortfolioStore();
+  const { burst, floatText } = useParticles();
+  const prevClosedRef = useRef(closedTrades.length);
+  const prevLevelRef = useRef(level);
   const [selectedSymbol, setSelectedSymbol] = useState<CryptoSymbol>('BTC');
   const [currentPrice, setCurrentPrice] = useState(0);
   const [tradeType, setTradeType] = useState<'spot' | 'futures'>('futures');
@@ -37,6 +42,40 @@ export default function TradePanel() {
       return () => clearTimeout(delay);
     }
   }, [closedTrades.length]);
+
+  // Particle effects on trade close
+  useEffect(() => {
+    if (closedTrades.length > prevClosedRef.current) {
+      const last = closedTrades[closedTrades.length - 1];
+      if (last) {
+        const pnl = last.pnl || 0;
+        const isWin = pnl > 0;
+        // Floating P&L number
+        floatText(window.innerWidth / 2, window.innerHeight / 2 - 100,
+          `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}`,
+          isWin ? '#22d65e' : '#ef4466');
+        // Confetti for wins, small burst for losses
+        if (isWin) {
+          burst({ kind: 'confetti', x: window.innerWidth / 2, y: window.innerHeight / 2, count: 40, spread: 5 });
+          sfx.tradeWin();
+        } else {
+          burst({ kind: 'sparkles', x: window.innerWidth / 2, y: window.innerHeight / 2, count: 10, color: '#ef4466' });
+          sfx.tradeLose();
+        }
+      }
+      prevClosedRef.current = closedTrades.length;
+    }
+  }, [closedTrades.length]);
+
+  // Fireworks on level up
+  useEffect(() => {
+    if (level > prevLevelRef.current) {
+      burst({ kind: 'fireworks', x: window.innerWidth / 2, y: window.innerHeight / 2, count: 50 });
+      floatText(window.innerWidth / 2, window.innerHeight / 2 - 60, `⬆ Nivel ${level}!`, '#fbbf24');
+      sfx.levelUp();
+      prevLevelRef.current = level;
+    }
+  }, [level]);
   const [side, setSide] = useState<'long' | 'short'>('long');
   const [leverage, setLeverage] = useState(5);
   const [amount, setAmount] = useState('');
@@ -63,6 +102,9 @@ export default function TradePanel() {
       tpPrice: tpPrice ? parseFloat(tpPrice) : undefined,
       slPrice: slPrice ? parseFloat(slPrice) : undefined,
     });
+    // Sparkle burst at trade button position
+    burst({ kind: 'sparkles', x: window.innerWidth - 200, y: window.innerHeight - 200, count: 15, color: side === 'long' ? '#22d65e' : '#ef4466' });
+    sfx.tradeOpen(side === 'long');
     setAmount('');
     setTpPrice('');
     setSlPrice('');

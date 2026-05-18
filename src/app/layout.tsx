@@ -8,6 +8,7 @@ import { usePortfolioStore } from '@/hooks/usePortfolio';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import LoginModal from '@/components/LoginModal';
+import ParticlesProvider from '@/components/ParticlesProvider';
 import { Inter } from 'next/font/google';
 import { Lock } from 'lucide-react';
 import './globals.css';
@@ -124,9 +125,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.className} bg-[#0a0a1a] text-white antialiased`} style={{ backgroundColor: '#0a0a1a' }}>
         <Web3Provider>
+          <ParticlesProvider>
           <AuthGate>
             {children}
           </AuthGate>
+          </ParticlesProvider>
         </Web3Provider>
       </body>
     </html>
