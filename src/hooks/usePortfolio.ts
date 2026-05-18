@@ -1,24 +1,34 @@
 'use client';
 
 import { create } from 'zustand';
-import { Trade, House, Character, ExchangeType, TradeType, TradeSide, CryptoSymbol } from '@/types';
-import { createCharacter, createHouse, getInitialCoins, calcFee, calcTradeXp, getLevel } from '@/lib/gameLogic';
+import { Trade, House, Character, ExchangeType, TradeType, TradeSide, CryptoSymbol, TradeStatus } from '@/types';
+import { createCharacter, createHouse, getInitialCoins, calcTradeXp, HOUSE_LEVELS } from '@/lib/gameLogic';
+import {
+  supabase,
+  fetchProfile, updateProfile,
+  fetchHoldings, updateHolding,
+  fetchActiveTrades, fetchClosedTrades, createTrade, closeTrade,
+  fetchHouse, upgradeHouse,
+  subscribeToTrades, subscribeToHoldings,
+} from '@/lib/supabase';
 
 interface PortfolioState {
-  coins: number;
-  holdings: { symbol: string; amount: number }[];
-  trades: Trade[];
-  activeTrades: Trade[];
-  closedTrades: Trade[];
-  characters: Character[];
-  house: House | null;
   userId: string | null;
+  coins: number;
   xp: number;
   level: number;
+  holdings: Record<string, number>;
+  activeTrades: Trade[];
+  closedTrades: Trade[];
+  trades: Trade[];
+  house: House | null;
 
+  // Actions
   initUser: (userId: string) => void;
+  initFromSupabase: (userId: string) => Promise<void>;
+  fetchAll: (userId: string) => Promise<void>;
   openTrade: (params: {
-    symbol: CryptoSymbol;
+    symbol: CryptSymbol;
     type: TradeType;
     side: TradeSide;
     exchange: ExchangeType;
@@ -27,167 +37,220 @@ interface PortfolioState {
     leverage: number;
     tpPrice?: number;
     slPrice?: number;
-  }) => void;
-  closeTrade: (tradeId: string, exitPrice: number) => void;
-  updateHoldings: (symbol: string, amount: number) => void;
+  }) => Promise<void>;
   checkTradeLimits: (symbol: string, currentPrice: number) => void;
+  syncFromDb: (data: any) => void;
 }
 
+type CryptSymbol = CryptoSymbol;
+
 export const usePortfolioStore = create<PortfolioState>((set, get) => ({
-  coins: getInitialCoins(),
-  holdings: [],
-  trades: [],
-  activeTrades: [],
-  closedTrades: [],
-  characters: [],
-  house: null,
   userId: null,
+  coins: 10,
   xp: 0,
   level: 1,
+  holdings: { BTC: 0, ETH: 0, SOL: 0 },
+  activeTrades: [],
+  closedTrades: [],
+  house: createHouse('local', []),
+  trades: [] as Trade[],
 
-  initUser: (userId) => {
-    const holdings = [{ symbol: 'BTC', amount: 0.05 }, { symbol: 'ETH', amount: 0.5 }, { symbol: 'SOL', amount: 2 }];
-    const house = createHouse(userId, holdings);
-    set({ userId, holdings, house, coins: getInitialCoins(), xp: 0, level: 1 });
+  initUser: (userId: string) => {
+    get().initFromSupabase(userId);
   },
 
-  openTrade: (params) => {
+  initFromSupabase: async (userId: string) => {
+    await get().fetchAll(userId);
+
+    // Subscribe to realtime changes
+    subscribeToTrades(userId, () => get().fetchAll(userId));
+    subscribeToHoldings(userId, () => get().fetchAll(userId));
+  },
+
+  fetchAll: async (userId: string) => {
+    try {
+      const [profile, holdings, activeTradesData, closedTradesData, houseData] = await Promise.all([
+        fetchProfile(userId),
+        fetchHoldings(userId),
+        fetchActiveTrades(userId),
+        fetchClosedTrades(userId),
+        fetchHouse(userId),
+      ]);
+
+      const holdingMap: Record<string, number> = { BTC: 0, ETH: 0, SOL: 0 };
+      (holdings || []).forEach((h: any) => { holdingMap[h.symbol] = Number(h.amount || 0); });
+
+      const activeTrades = (activeTradesData || []).map((t: any) => ({
+        ...t,
+        entry_price: Number(t.entry_price),
+        amount: Number(t.amount),
+        pnl: Number(t.pnl || 0),
+        leverage: Number(t.leverage || 1),
+        tp_price: t.tp_price ? Number(t.tp_price) : undefined,
+        sl_price: t.sl_price ? Number(t.sl_price) : undefined,
+        entry_fees: Number(t.entry_fees || 0),
+      }));
+
+      const closedTrades = (closedTradesData || []).map((t: any) => ({
+        ...t,
+        pnl: Number(t.pnl || 0),
+        amount: Number(t.amount),
+      }));
+
+      set({
+        userId,
+        coins: Number(profile?.coins || 10),
+        xp: profile?.xp || 0,
+        level: profile?.level || 1,
+        holdings: holdingMap,
+        activeTrades,
+        closedTrades,
+        house: createHouse(houseData?.level || 1, houseData?.style || 'tent'),
+      });
+    } catch (e) {
+      console.warn('Failed to fetch from Supabase, using local state:', e);
+    }
+  },
+
+  openTrade: async (params) => {
     const state = get();
+    const userId = state.userId;
+    const fees = params.amount * 0.0007 * 2; // BingX taker fee
+
     if (params.amount > state.coins) return;
+    if (params.amount <= 0) return;
 
-    const fee = calcFee(params.amount);
-    const tradeId = `trade_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const character = createCharacter(tradeId, state.userId || '', params.type, params.exchange, 0);
+    // Deduct coins
+    const newCoins = state.coins - params.amount;
 
-    const trade: Trade = {
-      id: tradeId,
-      user_id: state.userId || '',
-      symbol: params.symbol,
-      type: params.type,
-      side: params.side,
-      exchange: params.exchange,
-      entry_price: params.entryPrice,
-      amount: params.amount,
-      leverage: params.type === 'futures' ? params.leverage : 1,
-      pnl: 0,
-      status: 'open',
-      character_id: character.id,
-      tp_price: params.tpPrice,
-      sl_price: params.slPrice,
-      opened_at: new Date().toISOString(),
-    };
+    if (userId) {
+      try {
+        const trade = await createTrade({
+          user_id: userId,
+          symbol: params.symbol,
+          type: params.type,
+          side: params.side,
+          exchange: params.exchange,
+          entry_price: params.entryPrice,
+          amount: params.amount,
+          leverage: params.leverage,
+          tp_price: params.tpPrice,
+          sl_price: params.slPrice,
+          entry_fees: fees,
+        });
 
-    set({
-      coins: state.coins - params.amount - fee,
-      trades: [...state.trades, trade],
-      activeTrades: [...state.activeTrades, trade],
-      characters: [...state.characters, character],
-    });
-  },
+        // Check if house needs upgrade
+        const newTotalHoldings = Object.values(state.holdings).reduce((a, b) => a + b, 0) + newCoins;
+        const newHouseLevel = calcHouseLevel(newTotalHoldings);
 
-  closeTrade: (tradeId, exitPrice) => {
-    const state = get();
-    const trade = state.activeTrades.find(t => t.id === tradeId);
-    if (!trade) return;
+        await Promise.all([
+          updateProfile(userId, { coins: newCoins }),
+          upgradeHouse(userId, newHouseLevel.style, newHouseLevel.level),
+        ]);
 
-    const positionValue = trade.amount * trade.leverage;
-    const rawPnl = trade.side === 'long'
-      ? ((exitPrice - trade.entry_price) / trade.entry_price) * positionValue
-      : ((trade.entry_price - exitPrice) / trade.entry_price) * positionValue;
-
-    const fee = calcFee(trade.amount) * 2;
-    const pnl = rawPnl - fee;
-    const isWin = pnl > 0;
-
-    const closedTrade: Trade = {
-      ...trade,
-      pnl,
-      status: isWin ? 'won' : 'lost',
-      closed_at: new Date().toISOString(),
-    };
-
-    // XP calculation
-    const gainXp = calcTradeXp({ amount: trade.amount, leverage: trade.leverage, pnl });
-    const newXp = state.xp + (isWin ? gainXp : Math.max(-gainXp, gainXp * -1.5));
-    const positiveXp = Math.max(0, newXp);
-    const newLevel = getLevel(positiveXp);
-
-    // Character updates
-    const updatedChars = state.characters.map((c: Character) => {
-      if (c.id === trade.character_id) {
-        const charGainXp = calcTradeXp({ amount: trade.amount, leverage: trade.leverage, pnl });
-        const finalXp = Math.max(0, c.xp + (isWin ? charGainXp : -Math.floor(Math.abs(pnl) * 15)));
-        return {
-          ...c,
-          xp: finalXp,
-          level: getLevel(finalXp),
-          is_active: !pnl,
-          trade_id: null,
-        };
+        await get().fetchAll(userId);
+      } catch (e) {
+        console.error('Failed to create trade:', e);
       }
-      return c;
-    });
-
-    // House update based on new holdings after trade result
-    const newHoldings = [...state.holdings];
-    const h = newHoldings.find(h => h.symbol === trade.symbol);
-    if (h) {
-      h.amount += pnl > 0 ? pnl * 0.001 : 0; // small amount for house
-    }
-
-    set({
-      coins: state.coins + trade.amount + pnl,
-      xp: positiveXp,
-      level: newLevel,
-      activeTrades: state.activeTrades.filter(t => t.id !== tradeId),
-      closedTrades: [...state.closedTrades, closedTrade],
-      trades: state.trades.map(t => t.id === tradeId ? closedTrade : t),
-      characters: updatedChars,
-      house: createHouse(state.userId || '', newHoldings),
-    });
-  },
-
-  updateHoldings: (symbol, amount) => {
-    const state = get();
-    const existing = state.holdings.find(h => h.symbol === symbol);
-    let newHoldings;
-    if (existing) {
-      newHoldings = state.holdings.map(h =>
-        h.symbol === symbol ? { ...h, amount: h.amount + amount } : h
-      );
     } else {
-      newHoldings = [...state.holdings, { symbol, amount }];
+      // Local mode
+      const tradeId = 'trade_' + Date.now();
+      const newHouse = createHouse('local', [{ symbol: params.symbol, amount: newCoins }]);
+
+      const trade: Trade = {
+        id: tradeId,
+        user_id: 'local',
+        symbol: params.symbol,
+        type: params.type,
+        side: params.side,
+        exchange: params.exchange,
+        entry_price: params.entryPrice,
+        amount: params.amount,
+        leverage: params.leverage,
+        status: 'open',
+        pnl: 0,
+        tp_price: params.tpPrice,
+        sl_price: params.slPrice,
+        entry_fees: fees,
+        opened_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        _tp_extended: false, _wc_extended: false,
+        _eff_locked: false, _t60_extension: 0,
+      };
+
+      set({
+        coins: newCoins,
+        activeTrades: [...state.activeTrades, trade],
+        house: newHouse,
+      });
     }
-    const house = createHouse(state.userId || '', newHoldings);
-    set({ holdings: newHoldings, house });
   },
 
   checkTradeLimits: (symbol, currentPrice) => {
     const state = get();
     for (const trade of state.activeTrades) {
       if (trade.symbol !== symbol) continue;
-      const { closeTrade } = get();
+      const pnl = trade.side === 'long'
+        ? (currentPrice - trade.entry_price) * trade.amount * trade.leverage
+        : (trade.entry_price - currentPrice) * trade.amount * trade.leverage;
+      const currentPnl = trade.pnl ?? 0;
 
       // Check TP
       if (trade.tp_price) {
-        const tpHit = trade.side === 'long'
-          ? currentPrice >= trade.tp_price
-          : currentPrice <= trade.tp_price;
-        if (tpHit) {
-          closeTrade(trade.id, trade.tp_price);
+        const hit = trade.side === 'long' ? currentPrice >= trade.tp_price : currentPrice <= trade.tp_price;
+        if (hit) {
+          if (state.userId) {
+            closeTrade(trade.id, pnl).then(() => get().fetchAll(state.userId!));
+          } else {
+            // Local close
+            const updated = state.activeTrades.map(t =>
+            (t.id === trade.id ? { ...t, status: 'closed' as TradeStatus, pnl, closed_at: new Date().toISOString() } : t)
+            );
+            set({
+              activeTrades: updated.filter(t => t.status !== 'closed'),
+              closedTrades: [...state.closedTrades, ...updated.filter(t => t.id === trade.id)],
+              coins: state.coins + pnl,
+            });
+          }
           continue;
         }
       }
 
       // Check SL
       if (trade.sl_price) {
-        const slHit = trade.side === 'long'
-          ? currentPrice <= trade.sl_price
-          : currentPrice >= trade.sl_price;
-        if (slHit) {
-          closeTrade(trade.id, trade.sl_price);
+        const hit = trade.side === 'long' ? currentPrice <= trade.sl_price : currentPrice >= trade.sl_price;
+        if (hit) {
+          if (state.userId) {
+            closeTrade(trade.id, pnl).then(() => get().fetchAll(state.userId!));
+          } else {
+            const updated = state.activeTrades.map(t =>
+            (t.id === trade.id ? { ...t, status: 'closed' as TradeStatus, pnl, closed_at: new Date().toISOString() } : t)
+            );
+            set({
+              activeTrades: updated.filter(t => t.status !== 'closed'),
+              closedTrades: [...state.closedTrades, ...updated.filter(t => t.id === trade.id)],
+              coins: state.coins + pnl,
+            });
+          }
         }
       }
     }
   },
+
+  syncFromDb: (data: any) => {
+    // Called by realtime subscription
+    get().fetchAll(get().userId!);
+  },
 }));
+
+const calcHouseLevel = (totalHoldings: number) => {
+  let level = 1;
+  let style = 'tent';
+  for (const [lvl, info] of Object.entries(HOUSE_LEVELS)) {
+    if (totalHoldings >= (info.min || 0)) {
+      level = Number(lvl);
+      style = info.style;
+    }
+  }
+  return { level, style };
+};

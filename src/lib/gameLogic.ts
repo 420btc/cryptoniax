@@ -122,6 +122,14 @@ export function calcHouseLevel(holdings: { symbol: string; amount: number }[]): 
   return Math.min(20, Math.floor(score / 10) + 1);
 }
 
+export const HOUSE_LEVELS: Record<number, { style: string; min: number }> = {
+  1: { style: 'tent', min: 0 },
+  2: { style: 'wood_house', min: 5 },
+  5: { style: 'stone_house', min: 20 },
+  10: { style: 'mansion', min: 50 },
+  15: { style: 'castle', min: 100 },
+};
+
 export function getHouseStyle(level: number): string {
   if (level >= 15) return 'castle';
   if (level >= 10) return 'mansion';

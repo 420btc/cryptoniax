@@ -24,13 +24,9 @@ export default function LoginModal({ isOpen, onClose }: Props) {
 
   const handleMetaMask = async () => {
     setLoading('metamask');
-    const address = await connectMetaMask();
-    if (address) {
-      alert(`🔗 MetaMask conectado: ${address.slice(0,6)}...${address.slice(-4)}`);
-    } else {
-      alert('No se detectó MetaMask. Instala la extensión.');
-    }
+    await connectMetaMask();
     setLoading(null);
+    onClose();
   };
 
   return (

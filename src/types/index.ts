@@ -38,13 +38,20 @@ export interface Trade {
   entry_price: number;
   amount: number;
   leverage: number;
-  pnl: number;
+  pnl?: number;
   status: TradeStatus;
-  character_id: string | null;
+  entry_fees?: number;
   tp_price?: number;
   sl_price?: number;
-  opened_at: string;
   closed_at?: string;
+  opened_at: string;
+  created_at?: string;
+  _tp_extended?: boolean;
+  _wc_extended?: boolean;
+  _eff_locked?: boolean;
+  _t60_extension?: number;
+  _trail_price?: number;
+  _trail_timestamp?: string;
 }
 
 export interface Character {

@@ -69,7 +69,7 @@ export default function TradePanel() {
   };
 
   const winRate = closedTrades.length > 0
-    ? Math.round((closedTrades.filter(t => t.pnl > 0).length / closedTrades.length) * 100)
+    ? Math.round((closedTrades.filter(t => (t.pnl ?? 0) > 0).length / closedTrades.length) * 100)
     : 0;
   const totalPnl = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
   const totalVolume = closedTrades.reduce((sum, t) => sum + t.amount, 0) + activeTrades.reduce((sum, t) => sum + t.amount, 0);
@@ -196,7 +196,7 @@ export default function TradePanel() {
                     </div>
                     <div className={`text-right ${isProfit ? 'text-[#22d65e]' : 'text-[#ef4466]'}`}>
                       <div className="text-sm font-bold tabular-nums">
-                        {isProfit ? '+' : ''}{t.pnl?.toFixed(2) ?? '0.00'}$
+                        {isProfit ? '+' : ''}{(t.pnl ?? 0).toFixed(2)}$
                       </div>
                     </div>
                   </motion.div>

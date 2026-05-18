@@ -7,32 +7,28 @@ import { supabase } from '@/lib/supabase';
 
 function CallbackHandler() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const handleCallback = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Auth callback error:', error);
+    supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      if (session) {
+        router.push('/dashboard');
       }
-      router.push('/dashboard');
-    };
-    handleCallback();
+    });
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a1a]">
-      <div className="text-center">
-        <div className="text-4xl mb-4 animate-spin">🏡</div>
-        <p className="text-[#8888aa]">Autenticando...</p>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <div className="animate-spin w-10 h-10 border-2 border-[#818cf8] border-t-transparent rounded-full mx-auto" />
+        <p className="text-[#8888b0] text-sm">Verificando identidad...</p>
       </div>
     </div>
   );
 }
 
-export default function AuthCallback() {
+export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={<div className="text-center py-20 text-[#8888aa]">Cargando...</div>}>
+    <Suspense>
       <CallbackHandler />
     </Suspense>
   );
