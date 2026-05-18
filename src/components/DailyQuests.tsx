@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Target, CheckCircle2, Circle } from 'lucide-react';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
+import { toast } from '@/hooks/useToast';
 
 const QUESTS_KEY = 'hodlville_daily_quests';
 
@@ -88,6 +89,7 @@ export default function DailyQuests() {
     setCollected(newCollected);
     const today = new Date().toDateString();
     localStorage.setItem(QUESTS_KEY, JSON.stringify({ date: today, completed: Array.from(completed), collected: Array.from(newCollected) }));
+    toast.reward('Misión Completada', `+${quest.reward} monedas, +${quest.reward * 2} XP`);
   };
 
   const completedCount = completed.size;

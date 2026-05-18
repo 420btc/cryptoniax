@@ -8,10 +8,11 @@ import { usePortfolioStore } from '@/hooks/usePortfolio';
 import {
   BarChart3, Globe, LogOut, Wallet, TrendingUp, Menu, X, User, Swords,
   ShoppingBag, Building2, Crown, Zap, Star, Activity,
-  ChevronRight, TrendingDown
+  ChevronRight, TrendingDown, Volume2, VolumeX
 } from 'lucide-react';
 import { signOut } from '@/lib/supabase';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { setMuted, isSoundMuted, startAmbientMusic } from '@/lib/sfx';
 import ProfileModal from './ProfileModal';
 import LoginModal from './LoginModal';
 
@@ -21,6 +22,17 @@ export default function Navbar() {
   const { coins, level, xp, activeTrades, closedTrades, house } = usePortfolioStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [muted, setMutedState] = useState(isSoundMuted());
+
+  useEffect(() => {
+    if (!muted) startAmbientMusic();
+  }, [muted]);
+
+  const toggleMute = () => {
+    const newState = !muted;
+    setMutedState(newState);
+    setMuted(newState);
+  };
 
   const links = [
     { href: '/dashboard', label: 'Trading', icon: BarChart3, color: '#f0b90b', short: 'Trade' },
@@ -28,6 +40,7 @@ export default function Navbar() {
     { href: '/world', label: 'Mundo', icon: Globe, color: '#00e6ff', short: 'Mapa' },
     { href: '/battles', label: 'Batallas', icon: Swords, color: '#ef4466', short: 'PvP' },
     { href: '/housing', label: 'Casas', icon: Building2, color: '#c084fc', short: 'Hogar' },
+    { href: '/leaderboard', label: 'Top', icon: Star, color: '#fbbf24', short: 'Top' },
     { href: '#shop', label: 'Tienda', icon: ShoppingBag, color: '#f59e0b', short: 'Shop', disabled: true },
   ];
 
@@ -118,6 +131,15 @@ export default function Navbar() {
 
           {/* ── RIGHT: Stats Bar + User ── */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Sound toggle */}
+            <button
+              onClick={toggleMute}
+              className="p-2 rounded-lg text-[#5c5c80] hover:text-white hover:bg-[rgba(255,255,255,0.04)] transition"
+              title={muted ? "Activar Sonido" : "Silenciar"}
+            >
+              {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
+
             {/* Active trades badge */}
             {activeTrades.length > 0 && (
               <motion.div

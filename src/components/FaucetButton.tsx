@@ -6,6 +6,7 @@ import { Coins, Sparkles } from 'lucide-react';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import { useParticles } from './ParticlesProvider';
 import { sfx } from '@/lib/sfx';
+import { toast } from '@/hooks/useToast';
 
 const FAUCET_KEY = 'hodlville_faucet_last';
 const FAUCET_COOLDOWN = 24 * 60 * 60 * 1000; // 24h
@@ -52,6 +53,7 @@ export default function FaucetButton() {
     burst({ kind: 'coins', x: window.innerWidth / 2, y: window.innerHeight / 2, count: 20, spread: 4 });
     floatText(window.innerWidth / 2, window.innerHeight / 2 - 40, `+$${amount}`, '#fbbf24');
     sfx.coinClaim();
+    toast.reward('Faucet Reclamado', `+${amount} monedas añadidas a tu cuenta`);
     setTimeout(() => {
       setShowParticles(false);
       setClaimed(0);

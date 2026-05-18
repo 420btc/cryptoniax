@@ -225,8 +225,21 @@ export default function BattleTavernChat() {
     }
   }, [input]);
 
-  // Initialize with welcome messages
+  // Initialize with welcome messages or load from localStorage
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem('hodlville_tavern_chat');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load chat history', e);
+    }
+
     const initial: ChatMessage[] = [];
     const talkers = BOTS.filter(b => b.talkative && b.greetChance > 0.5);
     // Pick 3-5 random talkative bots to greet
@@ -249,6 +262,18 @@ export default function BattleTavernChat() {
     });
     setMessages(initial);
   }, []);
+
+  // Save to localStorage when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        const last200 = messages.slice(-200);
+        localStorage.setItem('hodlville_tavern_chat', JSON.stringify(last200));
+      } catch (e) {
+        console.error('Failed to save chat history', e);
+      }
+    }
+  }, [messages]);
 
   // Ambient conversations between bots (every 15-45 seconds)
   useEffect(() => {

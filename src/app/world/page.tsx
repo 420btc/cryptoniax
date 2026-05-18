@@ -7,16 +7,7 @@ import { Globe, MapPin, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import BackButton from '@/components/BackButton';
 
-const PixiWorld = dynamic(() => import('@/components/PixiWorld'), {
-  ssr: false,
-  loading: () => (
-    <div className="glass-card !p-16 text-center" style={{ height: 500 }}>
-      <div className="text-4xl mb-4 animate-pulse">🌍</div>
-      <div className="shimmer w-32 h-4 rounded mx-auto mb-2" />
-      <div className="shimmer w-48 h-3 rounded mx-auto" />
-    </div>
-  ),
-});
+import CobeGlobe from '@/components/CobeGlobe';
 
 const stagger = { animate: { transition: { staggerChildren: 0.1 } } };
 const cardAnim = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
@@ -80,8 +71,15 @@ export default function WorldPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
+        className="glass-card !p-0 overflow-hidden relative bg-[#05050f]"
       >
-        <PixiWorld />
+        <div className="absolute top-4 left-4 z-10">
+          <div className="glass px-3 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#22d65e] animate-pulse" />
+            HodlGlobe Network
+          </div>
+        </div>
+        <CobeGlobe />
       </motion.div>
 
       {/* Player activity */}

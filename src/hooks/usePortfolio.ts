@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Trade, House, Character, ExchangeType, TradeType, TradeSide, CryptoSymbol, TradeStatus } from '@/types';
 import { createCharacter, createHouse, getInitialCoins, calcTradeXp, HOUSE_LEVELS } from '@/lib/gameLogic';
 import {
@@ -11,6 +12,7 @@ import {
   fetchHouse, upgradeHouse,
   subscribeToTrades, subscribeToHoldings,
 } from '@/lib/supabase';
+import { toast } from '@/hooks/useToast';
 
 interface PortfolioState {
   userId: string | null;
@@ -46,12 +48,14 @@ interface PortfolioState {
 
 type CryptSymbol = CryptoSymbol;
 
-export const usePortfolioStore = create<PortfolioState>((set, get) => ({
+export const usePortfolioStore = create<PortfolioState>()(
+  persist(
+    (set, get) => ({
   userId: null,
   coins: 10,
   xp: 0,
   level: 1,
-  holdings: { BTC: 0, ETH: 0, SOL: 0 },
+  holdings: { BTC: 0, ETH: 0, SOL: 0, XRP: 0, DOGE: 0, ADA: 0, LINK: 0, AVAX: 0 },
   activeTrades: [],
   closedTrades: [],
   house: createHouse('local', []),
@@ -153,8 +157,10 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
         ]);
 
         await get().fetchAll(userId);
+        toast.info('Trade Abierto', `${params.side.toUpperCase()} ${params.symbol} a $${params.entryPrice}`);
       } catch (e) {
         console.error('Failed to create trade:', e);
+        toast.error('Error', 'No se pudo abrir el trade');
       }
     } else {
       // Local mode
@@ -187,6 +193,7 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
         activeTrades: [...state.activeTrades, trade],
         house: newHouse,
       });
+      toast.info('Trade Abierto', `${params.side.toUpperCase()} ${params.symbol} a $${params.entryPrice}`);
     }
   },
 
@@ -204,7 +211,11 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
         const hit = trade.side === 'long' ? currentPrice >= trade.tp_price : currentPrice <= trade.tp_price;
         if (hit) {
           if (state.userId && state.userId !== 'guest') {
-            closeTrade(trade.id, pnl).then(() => get().fetchAll(state.userId!));
+            closeTrade(trade.id, pnl).then(() => {
+              get().fetchAll(state.userId!);
+              if (pnl > 0) toast.success('Trade Cerrado', `+${pnl.toFixed(2)} monedas`);
+              else toast.error('Trade Cerrado', `${pnl.toFixed(2)} monedas`);
+            });
           } else {
             // Local close
             const updated = state.activeTrades.map(t =>
@@ -215,6 +226,8 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
               closedTrades: [...state.closedTrades, ...updated.filter(t => t.id === trade.id)],
               coins: state.coins + pnl,
             });
+            if (pnl > 0) toast.success('Trade Cerrado en Profit', `+${pnl.toFixed(2)} monedas`);
+            else toast.error('Trade Cerrado en Pérdida', `${pnl.toFixed(2)} monedas`);
           }
           continue;
         }
@@ -225,7 +238,11 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
         const hit = trade.side === 'long' ? currentPrice <= trade.sl_price : currentPrice >= trade.sl_price;
         if (hit) {
           if (state.userId && state.userId !== 'guest') {
-            closeTrade(trade.id, pnl).then(() => get().fetchAll(state.userId!));
+            closeTrade(trade.id, pnl).then(() => {
+              get().fetchAll(state.userId!);
+              if (pnl > 0) toast.success('Trade Cerrado', `+${pnl.toFixed(2)} monedas`);
+              else toast.error('Trade Cerrado', `${pnl.toFixed(2)} monedas`);
+            });
           } else {
             const updated = state.activeTrades.map(t =>
             (t.id === trade.id ? { ...t, status: 'closed' as TradeStatus, pnl, closed_at: new Date().toISOString() } : t)
@@ -235,6 +252,8 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
               closedTrades: [...state.closedTrades, ...updated.filter(t => t.id === trade.id)],
               coins: state.coins + pnl,
             });
+            if (pnl > 0) toast.success('Trade Cerrado en Profit', `+${pnl.toFixed(2)} monedas`);
+            else toast.error('Trade Cerrado en Pérdida', `${pnl.toFixed(2)} monedas`);
           }
         }
       }
@@ -256,7 +275,23 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     const newLevel = Math.floor(Math.sqrt(newXp / 100)) + 1;
     set({ xp: newXp, level: newLevel });
   },
-}));
+    }),
+    {
+      name: 'hodlville-portfolio-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        userId: state.userId,
+        coins: state.coins,
+        xp: state.xp,
+        level: state.level,
+        holdings: state.holdings,
+        activeTrades: state.activeTrades,
+        closedTrades: state.closedTrades,
+        house: state.house,
+      }),
+    }
+  )
+);
 
 const calcHouseLevel = (totalHoldings: number) => {
   let level = 1;

@@ -11,6 +11,8 @@ export interface Achievement {
   reward?: { xp: number; coins: number };
 }
 
+
+
 export const ALL_ACHIEVEMENTS: Achievement[] = [
   // ── TRADING ──
   { key: 'first_trade', name: 'Primer Trade', description: 'Abre tu primer trade', icon: '📈', maxProgress: 1, category: 'trading', reward: { xp: 50, coins: 10 } },

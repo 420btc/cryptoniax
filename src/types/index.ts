@@ -100,11 +100,15 @@ export const EXCHANGE_THEMES: Record<ExchangeType, { color: string; name: string
   other: { color: '#8888aa', name: 'Other', insignia: '✦' },
 };
 
-export const CRYPTO_SYMBOLS = ['BTC', 'ETH', 'XRP', 'SOL'] as const;
+export const CRYPTO_SYMBOLS = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE', 'ADA', 'LINK', 'AVAX'] as const;
 export const BINANCE_SYMBOLS: Record<CryptoSymbol, string> = {
   BTC: 'BTCUSDT',
   ETH: 'ETHUSDT',
   XRP: 'XRPUSDT',
   SOL: 'SOLUSDT',
+  DOGE: 'DOGEUSDT',
+  ADA: 'ADAUSDT',
+  LINK: 'LINKUSDT',
+  AVAX: 'AVAXUSDT',
 };
 export type CryptoSymbol = typeof CRYPTO_SYMBOLS[number];

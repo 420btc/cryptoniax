@@ -4,6 +4,21 @@
 // Pure oscillator-based sounds — procedural, lightweight, unique
 
 let audioCtx: AudioContext | null = null;
+let isMuted = false;
+let ambientOsc1: OscillatorType | null = null;
+let ambientOsc2: OscillatorType | null = null;
+let ambientGain: GainNode | null = null;
+
+export const setMuted = (muted: boolean) => {
+  isMuted = muted;
+  if (muted && ambientGain) {
+    ambientGain.gain.setTargetAtTime(0.001, getCtx().currentTime, 0.5);
+  } else if (!muted && ambientGain) {
+    ambientGain.gain.setTargetAtTime(0.02, getCtx().currentTime, 0.5);
+  }
+};
+
+export const isSoundMuted = () => isMuted;
 
 function getCtx(): AudioContext {
   if (!audioCtx) {
@@ -12,7 +27,43 @@ function getCtx(): AudioContext {
   return audioCtx;
 }
 
+export const startAmbientMusic = () => {
+  if (ambientGain) return; // Already running
+  try {
+    const ctx = getCtx();
+    ambientGain = ctx.createGain();
+    ambientGain.gain.value = isMuted ? 0 : 0.02;
+    ambientGain.connect(ctx.destination);
+
+    // Procedural Lo-Fi ambient drone
+    const osc1 = ctx.createOscillator();
+    osc1.type = 'sine';
+    osc1.frequency.value = 110; // A2
+    osc1.connect(ambientGain);
+    osc1.start();
+
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'triangle';
+    osc2.frequency.value = 164.81; // E3
+    osc2.connect(ambientGain);
+    osc2.start();
+    
+    // Slow LFO for volume modulation
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.1;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 0.01;
+    lfo.connect(lfoGain);
+    lfoGain.connect(ambientGain.gain);
+    lfo.start();
+  } catch (e) {
+    // Silently fail
+  }
+};
+
 function playTone(freq: number, duration: number, type: OscillatorType = 'sine', volume = 0.12, ramp = true) {
+  if (isMuted) return;
   try {
     const ctx = getCtx();
     const osc = ctx.createOscillator();
@@ -89,5 +140,17 @@ export const sfx = {
   error: () => {
     playTone(150, 0.2, 'square', 0.04);
     playTone(100, 0.25, 'sawtooth', 0.03);
+  },
+
+  /** Attack — swish */
+  attack: () => {
+    playTone(800, 0.1, 'sawtooth', 0.05);
+    setTimeout(() => playTone(600, 0.1, 'sine', 0.05), 30);
+  },
+
+  /** Hit — punch */
+  hit: () => {
+    playTone(200, 0.15, 'square', 0.08);
+    playTone(100, 0.1, 'sawtooth', 0.1);
   },
 };

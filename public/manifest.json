@@ -1,0 +1,17 @@
+{
+  "name": "HodlVille",
+  "short_name": "HodlVille",
+  "description": "Juego 2D pixel art donde tus trades forjan tus héroes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "icons": [
+    {
+      "src": "/sprites/v2/house_castle_lv5.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

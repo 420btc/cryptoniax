@@ -6,8 +6,12 @@ import { Trophy, Lock } from 'lucide-react';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import { ALL_ACHIEVEMENTS, ACHIEVEMENT_CATEGORIES, checkAchievements } from '@/lib/achievements';
 
+import { useAchievementsStore } from '@/hooks/useAchievements';
+import { useEffect } from 'react';
+
 export default function AchievementsStrip() {
   const { closedTrades, activeTrades, house, level, coins } = usePortfolioStore();
+  const { unlocked, checkAll } = useAchievementsStore();
 
   // Compute player state for achievement checking
   const playerState = useMemo(() => {
@@ -36,49 +40,21 @@ export default function AchievementsStrip() {
     };
   }, [closedTrades, house, level, coins]);
 
-  const { unlocked, latest } = useMemo(() => {
-    const unlockedKeys = new Set<string>();
-    for (const ach of ALL_ACHIEVEMENTS) {
-      let progress = 0;
-      switch (ach.key) {
-        case 'first_trade': progress = playerState.totalTrades; break;
-        case 'ten_trades': progress = playerState.totalTrades; break;
-        case 'fifty_trades': progress = playerState.totalTrades; break;
-        case 'hundred_trades': progress = playerState.totalTrades; break;
-        case 'first_win': progress = playerState.totalWins; break;
-        case 'streak_5': progress = playerState.currentStreak; break;
-        case 'streak_10': progress = playerState.currentStreak; break;
-        case 'big_win': progress = playerState.maxWinAmount >= 100 ? 1 : 0; break;
-        case 'mega_win': progress = playerState.maxWinAmount >= 500 ? 1 : 0; break;
-        case 'profit_1000': progress = Math.min(playerState.totalProfit, 1000); break;
-        case 'first_house': progress = playerState.houseLevel >= 2 ? 1 : 0; break;
-        case 'mansion': progress = playerState.houseLevel >= 8 ? 1 : 0; break;
-        case 'castle': progress = playerState.houseLevel >= 16 ? 1 : 0; break;
-        case 'decorator': progress = playerState.decorations; break;
-        case 'vault_lv3': progress = playerState.vaultLevel >= 3 ? 1 : 0; break;
-        case 'vault_lv5': progress = playerState.vaultLevel >= 5 ? 1 : 0; break;
-        case 'first_battle': progress = playerState.battlesWon; break;
-        case 'battle_wins_10': progress = playerState.battlesWon; break;
-        case 'level_5': progress = playerState.playerLevel >= 5 ? 1 : 0; break;
-        case 'level_10': progress = playerState.playerLevel >= 10 ? 1 : 0; break;
-        case 'collect_items_5': progress = playerState.ownedItemCount; break;
-        case 'collect_items_15': progress = playerState.ownedItemCount; break;
-        case 'all_pets': progress = playerState.petCount; break;
-        case 'full_equip': progress = playerState.equippedSlots >= 9 ? 1 : 0; break;
-        case 'chat_10': progress = playerState.chatMessages; break;
-        case 'chat_50': progress = playerState.chatMessages; break;
-        case 'daily_7': progress = playerState.loginStreak; break;
-      }
-      if (progress >= ach.maxProgress) unlockedKeys.add(ach.key);
-    }
+  useEffect(() => {
+    checkAll(playerState);
+  }, [playerState, checkAll]);
 
-    const unlocked = ALL_ACHIEVEMENTS.filter(a => unlockedKeys.has(a.key));
-    return { 
-      unlocked: unlocked.slice(-5).reverse(), // últimas 5 conseguidas
-      latest: unlocked.length,
-      total: ALL_ACHIEVEMENTS.length 
+  const { unlockedList, latest } = useMemo(() => {
+    const sorted = Object.entries(unlocked)
+      .sort(([, timeA], [, timeB]) => timeB - timeA)
+      .map(([key]) => ALL_ACHIEVEMENTS.find(a => a.key === key))
+      .filter(Boolean) as typeof ALL_ACHIEVEMENTS;
+    return {
+      unlockedList: sorted.slice(0, 5),
+      latest: sorted.length,
+      total: ALL_ACHIEVEMENTS.length
     };
-  }, [playerState]);
+  }, [unlocked]);
 
   if (ALL_ACHIEVEMENTS.length === 0) return null;
 
@@ -102,13 +78,13 @@ export default function AchievementsStrip() {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {unlocked.length === 0 && (
+        {unlockedList.length === 0 && (
           <div className="flex items-center gap-2 text-[10px] text-[#5c5c80] py-2">
             <Lock size={11} />
             Abre tu primer trade para desbloquear logros
           </div>
         )}
-        {unlocked.map((ach, i) => {
+        {unlockedList.map((ach, i) => {
           const cat = ACHIEVEMENT_CATEGORIES[ach.category];
           return (
             <motion.div

@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import LoginModal from '@/components/LoginModal';
 import ParticlesProvider from '@/components/ParticlesProvider';
+import ToastProvider from '@/components/ToastProvider';
 import { Inter } from 'next/font/google';
 import { Lock } from 'lucide-react';
 import './globals.css';
@@ -42,6 +43,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       router.replace('/');
     }
   }, [loading, session, pathname, router]);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -133,6 +140,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="bg-[#0a0a1a]">
       <head>
         <meta name="theme-color" content="#0a0a1a" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className={`${inter.className} bg-[#0a0a1a] text-white antialiased`} style={{ backgroundColor: '#0a0a1a' }}>
         <Web3Provider>
@@ -140,6 +150,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthGate>
             {children}
           </AuthGate>
+          <ToastProvider />
           </ParticlesProvider>
         </Web3Provider>
       </body>
