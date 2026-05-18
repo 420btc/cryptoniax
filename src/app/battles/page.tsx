@@ -152,7 +152,7 @@ export default function BattlesPage() {
 
       {/* Arena or Chat */}
       {activeTab === 'arena' ? (
-        <motion.div key="arena" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-battle-arena rounded-xl p-4">
+        <motion.div key="arena" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-battle-forest rounded-xl p-4">
           <BattleArena
             player={player}
             opponent={opponent}
@@ -163,7 +163,7 @@ export default function BattlesPage() {
         </motion.div>
       ) : (
         <motion.div key="chat" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="glass-card !p-0 overflow-hidden">
+          <div className="glass-card !p-0 overflow-hidden bg-tavern-interior">
             <div className="h-[550px]">
               <BattleTavernChat />
             </div>

@@ -7,7 +7,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import {
   BarChart3, Globe, LogOut, Wallet, TrendingUp, Menu, X, User, Home, Swords,
-  ShoppingBag, Building2, Zap, Star, Clock, Target, ChevronRight, Activity
+  ShoppingBag, Building2, Crown, Zap, Star, Clock, Target, ChevronRight, Activity
 } from 'lucide-react';
 import { signOut } from '@/lib/supabase';
 import { useState } from 'react';
@@ -22,10 +22,11 @@ export default function Navbar() {
 
   const links = [
     { href: '/dashboard', label: 'Trading', icon: BarChart3, color: '#f0b90b' },
+    { href: '/kingdom', label: 'Reino', icon: Crown, color: '#818cf8' },
     { href: '/world', label: 'Mundo', icon: Globe, color: '#00e6ff' },
-    { href: '/housing', label: 'Casas', icon: Building2, color: '#c084fc' },
     { href: '/battles', label: 'Batallas', icon: Swords, color: '#ef4466' },
-    { href: '#auctions', label: 'Subastas', icon: ShoppingBag, color: '#5c5c80', disabled: true },
+    { href: '/housing', label: 'Casas', icon: Building2, color: '#c084fc' },
+    { href: '#shop', label: 'Tienda', icon: ShoppingBag, color: '#f59e0b', disabled: true },
   ];
 
   const username = profile?.email?.split('@')[0] || 'Trader';

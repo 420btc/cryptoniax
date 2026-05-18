@@ -1,6 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import { Swords, Shield, Heart, Zap } from 'lucide-react';
 
 interface Fighter {
@@ -27,7 +28,22 @@ interface Props {
   onAttack?: () => void;
 }
 
+const FX_LIST = ['fx_explosion.png', 'fx_heal.png', 'fx_shield.png', 'fx_lightning.png', 'fx_poison.png', 'fx_fire.png'];
+const FX_COLORS = ['#ef4466', '#22d65e', '#818cf8', '#fbbf24', '#22d65e', '#f59e0b'];
+
 export default function BattleArena({ player, opponent, log, playerTurn, onAttack }: Props) {
+  const [currentFx, setCurrentFx] = useState<string | null>(null);
+  const [fxColor, setFxColor] = useState('#ef4466');
+  
+  const handleAttack = () => {
+    if (!onAttack || !playerTurn) return;
+    // Pick random effect
+    const idx = Math.floor(Math.random() * FX_LIST.length);
+    setCurrentFx(FX_LIST[idx]);
+    setFxColor(FX_COLORS[idx]);
+    setTimeout(() => setCurrentFx(null), 800);
+    onAttack();
+  };
   return (
     <div className="glass-card !p-0 overflow-hidden">
       {/* Battle background */}
@@ -50,6 +66,24 @@ export default function BattleArena({ player, opponent, log, playerTurn, onAttac
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
           <div className="text-4xl font-black text-white/10 select-none">VS</div>
         </div>
+
+        {/* Battle effect */}
+        <AnimatePresence>
+          {currentFx && (
+            <motion.div
+              key={currentFx}
+              initial={{ opacity: 0, scale: 0.3 }}
+              animate={{ opacity: 1, scale: 1.2 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={{ duration: 0.3 }}
+              className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
+            >
+              <img src={`/sprites/v2/${currentFx}`} alt="" className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+                style={{ filter: `drop-shadow(0 0 20px ${fxColor})` }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── LEFT: Player ── */}
         <div className="absolute left-6 lg:left-16 bottom-20 flex flex-col items-center">
@@ -155,7 +189,7 @@ export default function BattleArena({ player, opponent, log, playerTurn, onAttac
         {onAttack && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <motion.button
-              onClick={onAttack}
+              onClick={handleAttack}
               disabled={!playerTurn}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

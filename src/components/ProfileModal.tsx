@@ -51,6 +51,18 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
   };
   const equipment = equipmentByLevel[charLevel] || equipmentByLevel[1];
 
+  // Pets
+  const PETS = [
+    { key: 'pet_cat', name: 'Gato', sprite: 'pet_cat.png', color: '#5c5c80', unlocked: winRate >= 10 },
+    { key: 'pet_dog', name: 'Perro', sprite: 'pet_dog.png', color: '#8B4513', unlocked: winRate >= 20 },
+    { key: 'pet_dragon', name: 'Dragón', sprite: 'pet_dragon.png', color: '#ef4466', unlocked: winRate >= 30 },
+    { key: 'pet_fox', name: 'Zorro', sprite: 'pet_fox.png', color: '#f59e0b', unlocked: winRate >= 40 },
+    { key: 'pet_phoenix', name: 'Fénix', sprite: 'pet_phoenix.png', color: '#fbbf24', unlocked: winRate >= 50 },
+    { key: 'pet_owl', name: 'Búho', sprite: 'pet_owl.png', color: '#818cf8', unlocked: winRate >= 60 },
+  ];
+  const equippedPet = PETS.find(p => p.unlocked);
+  const petProgress = Math.min(100, (winRate / 60) * 100);
+
   const houseEmoji = house?.style === 'tent' ? '🏕️'
     : house?.style === 'wood_house' ? '🪵'
     : house?.style === 'stone_house' ? '🏠'
@@ -214,6 +226,50 @@ export default function ProfileModal({ isOpen, onClose }: Props) {
                   </div>
                 </div>
               )}
+
+              {/* Pet / Companion */}
+              <div>
+                <div className="flex items-center gap-1.5 text-[10px] text-[#5c5c80] mb-2">
+                  <Zap size={11} className="text-[#fbbf24]" />
+                  Compañero
+                </div>
+                <div className="flex items-center gap-2">
+                  {equippedPet ? (
+                    <div className="glass !rounded-lg p-2 flex items-center gap-2 flex-1">
+                      <img src={`/sprites/v2/${equippedPet.sprite}`} alt={equippedPet.name}
+                        className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                      <div>
+                        <div className="text-xs font-bold text-white">{equippedPet.name}</div>
+                        <span className="text-[9px] text-[#22d65e]">✅ Desbloqueado</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="glass !rounded-lg p-3 flex-1 text-center">
+                      <div className="text-[10px] text-[#5c5c80]">
+                        Desbloquea mascotas con un winrate del 10%+
+                      </div>
+                      <div className="w-full h-1 rounded-full bg-[rgba(99,102,241,0.1)] overflow-hidden mt-1">
+                        <div className="h-full rounded-full bg-gradient-to-r from-[#6366f1] to-[#818cf8]" style={{ width: `${petProgress}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-1 mt-1.5">
+                  {PETS.slice(0, 6).map((p) => (
+                    <div key={p.key} className="flex-1 flex flex-col items-center gap-0.5"
+                      title={p.unlocked ? p.name : `${p.name} (${10 + PETS.indexOf(p) * 10}% winrate)`}>
+                      <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center ${p.unlocked ? 'opacity-100' : 'opacity-30 grayscale'}`}
+                        style={{ background: `${p.color}20` }}>
+                        <img src={`/sprites/v2/${p.sprite}`} alt="" className="w-4 h-4 sm:w-5 sm:h-5 object-contain"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      </div>
+                      <span className="text-[6px] text-[#5c5c80]">{p.name[0]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               {/* House */}
               <div className="glass !rounded-lg p-3 flex items-center gap-3">
