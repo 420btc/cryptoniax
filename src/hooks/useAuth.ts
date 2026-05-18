@@ -10,6 +10,7 @@ interface AuthState {
   session: any;
   profile: any;
   loading: boolean;
+  isGuest: boolean;
   setSession: (session: any) => void;
   setProfile: (profile: any) => void;
   signInWithGoogle: () => Promise<void>;
@@ -23,6 +24,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   session: null,
   profile: null,
   loading: true,
+  isGuest: false,
 
   setSession: (session) => set({ session }),
   setProfile: (profile) => set({ profile }),
@@ -44,6 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       session: { user: { id: 'guest', email: 'invitado@hodlville.game' } },
       profile: { email: 'invitado@hodlville.game', avatar_url: null },
+      isGuest: true,
       loading: false,
     });
     usePortfolioStore.setState({
@@ -60,7 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: async () => {
     await supabaseSignOut();
-    set({ session: null, profile: null });
+    set({ session: null, profile: null, isGuest: false });
     usePortfolioStore.setState({
       userId: null, coins: 10, xp: 0, level: 1,
       activeTrades: [], closedTrades: [],
@@ -71,7 +74,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   initAuth: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      set({ session, loading: false });
+      set({ session, loading: false, isGuest: false });
 
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
@@ -83,7 +86,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     supabase.auth.onAuthStateChange(async (_e: any, session: any) => {
-      set({ session, loading: false });
+      set({ session, loading: false, isGuest: false });
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
         set({ profile: profile || { email: session.user.email } });

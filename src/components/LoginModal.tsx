@@ -1,19 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { X, Wallet, Chrome, ArrowRight, UserPlus } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  trigger?: React.ReactNode;
 }
 
-export default function LoginModal({ isOpen, onClose }: Props) {
+export default function LoginModal({ isOpen, onClose, trigger }: Props) {
   const { signInWithGoogle, connectMetaMask, signInAsGuest } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(isOpen);
 
-  if (!isOpen) return null;
+  // Sync external isOpen
+  useEffect(() => { setModalOpen(isOpen); }, [isOpen]);
+
+  const close = () => { setModalOpen(false); onClose(); };
+
+  if (trigger && !modalOpen) {
+    return <span onClick={() => setModalOpen(true)}>{trigger}</span>;
+  }
+
+  if (!modalOpen) return null;
 
   const handleGoogle = async () => {
     setLoading('google');
@@ -25,23 +36,23 @@ export default function LoginModal({ isOpen, onClose }: Props) {
     setLoading('metamask');
     await connectMetaMask();
     setLoading(null);
-    onClose();
+    close();
   };
 
   const handleGuest = () => {
     signInAsGuest();
-    onClose();
+    close();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Overlay */}
-      <div className="absolute inset-0 bg-[rgba(5,5,15,0.85)] backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-[rgba(5,5,15,0.85)] backdrop-blur-md" onClick={close} />
 
       {/* Modal */}
       <div className="relative glass-card !p-8 w-full max-w-md animate-scale-in">
         {/* Close */}
-        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-[#5c5c80] hover:text-white hover:bg-[rgba(255,255,255,0.05)] transition">
+        <button onClick={close} className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-[#5c5c80] hover:text-white hover:bg-[rgba(255,255,255,0.05)] transition">
           <X size={16} />
         </button>
 
