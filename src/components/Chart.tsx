@@ -153,7 +153,7 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
   useEffect(() => {
     if (!containerRef.current) return;
     const w = containerRef.current.clientWidth;
-    const h = 600;
+    const h = 700;
 
     const chart = createChart(containerRef.current, {
       layout: {
@@ -365,7 +365,7 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
       </div>
 
       {/* Chart */}
-      <div ref={containerRef} className="w-full rounded-xl overflow-hidden" style={{ height: 600 }} />
+      <div ref={containerRef} className="w-full rounded-xl overflow-hidden" style={{ height: 700 }} />
     </div>
   );
 }

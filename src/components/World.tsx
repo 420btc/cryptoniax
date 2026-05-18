@@ -217,7 +217,11 @@ export default function WorldCanvas() {
       });
     };
     app.ticker.add(ticker);
-    return () => { app.ticker.remove(ticker); };
+    return () => { 
+      if (appRef.current?.ticker) {
+        appRef.current.ticker.remove(ticker); 
+      }
+    };
   }, [worldReady]);
 
   return (
