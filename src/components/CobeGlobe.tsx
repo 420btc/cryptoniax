@@ -48,12 +48,12 @@ export default function CobeGlobe() {
       markerColor: [0.38, 0.4, 0.94], // #6366f1 roughly
       glowColor: [0.1, 0.1, 0.2],
       markers: markers,
-      onRender: (state) => {
+      onRender: (state: Record<string, any>) => {
         // Rotación lenta
         state.phi = phi;
         phi += 0.003;
       },
-    });
+    } as any);
 
     setTimeout(() => {
       if (canvasRef.current) {
