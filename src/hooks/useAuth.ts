@@ -99,6 +99,12 @@ export const useAuthStore = create<AuthState>()(
 
       initAuth: async () => {
         try {
+          const state = useAuthStore.getState();
+          if (state.isGuest && state.session?.user?.id === 'guest') {
+            set({ loading: false });
+            return;
+          }
+
           const { data: { session } } = await supabase.auth.getSession();
           set({ session, loading: false, isGuest: false });
 
@@ -114,6 +120,9 @@ export const useAuthStore = create<AuthState>()(
         }
 
         supabase.auth.onAuthStateChange(async (_e: any, session: any) => {
+          const state = useAuthStore.getState();
+          if (state.isGuest) return; // Ignore supabase auth changes if guest
+
           set({ session, loading: false, isGuest: false });
           if (session?.user) {
             const profile = await fetchProfile(session.user.id);
@@ -142,7 +151,8 @@ export const useAuthStore = create<AuthState>()(
 export function useAuth() {
   const auth = useAuthStore();
   useEffect(() => {
-    if (!auth.session && !auth.profile) auth.initAuth();
+    // Only init auth if we are not already loaded as a guest
+    if (!auth.session && !auth.profile && !auth.isGuest) auth.initAuth();
   }, []);
   return auth;
 }

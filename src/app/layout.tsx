@@ -30,13 +30,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [session, userId, initUser]);
 
-  // Redirect authenticated users (including guests) FROM landing TO dashboard
-  useEffect(() => {
-    if (!loading && session && pathname === '/') {
-      router.replace('/dashboard');
-    }
-  }, [loading, session, pathname, router]);
-
   // Redirect unauthenticated users from protected routes to landing
   useEffect(() => {
     if (!loading && !session && PROTECTED_ROUTES.includes(pathname)) {
@@ -112,16 +105,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // If session exists but still on landing, show loader (redirect fires via useEffect)
+  // If session exists and on landing, just render children without Navbar wrapper
   if (pathname === '/') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a1a]">
-        <div className="text-center">
-          <div className="text-4xl mb-4 animate-bounce">🏡</div>
-          <p className="text-[#8888aa] text-sm">Bienvenido a HodlVille...</p>
-        </div>
-      </div>
-    );
+    return <>{children}</>;
   }
 
   return (

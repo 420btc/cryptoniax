@@ -37,6 +37,7 @@ export default function LoginModal({ isOpen, onClose, trigger }: Props) {
   const handleGuest = () => {
     signInAsGuest();
     close();
+    window.location.href = '/dashboard';
   };
 
   return (
