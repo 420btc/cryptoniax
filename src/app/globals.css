@@ -328,4 +328,33 @@ canvas { image-rendering: auto; }
     background-position: center;
     background-attachment: fixed;
   }
+
+  /* Nuevos fondos de batalla */
+  .bg-battle-forest {
+    background-image: url('/sprites/v2/bg_battle_forest.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-battle-cave {
+    background-image: url('/sprites/v2/bg_battle_cave.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-battle-volcano {
+    background-image: url('/sprites/v2/bg_battle_volcano.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* Tienda y Taberna */
+  .bg-shop-interior {
+    background-image: url('/sprites/v2/bg_shop_interior.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-tavern-interior {
+    background-image: url('/sprites/v2/bg_tavern_interior.png');
+    background-size: cover;
+    background-position: center;
+  }
 }

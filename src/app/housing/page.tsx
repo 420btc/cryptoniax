@@ -43,6 +43,9 @@ export default function HousingPage() {
     return Object.values(holdings || {}).reduce((sum: number, v: unknown) => sum + (Number(v) || 0), 0);
   }, [holdings]);
 
+  // Vault level based on total holdings
+  const vaultLevel = totalHoldings < 50 ? 1 : totalHoldings < 200 ? 2 : totalHoldings < 500 ? 3 : totalHoldings < 1000 ? 4 : 5;
+
   // Next upgrade info
   const nextUpgrade = useMemo(() => {
     const levels = Object.entries(HOUSE_LEVELS).sort((a, b) => Number(a[0]) - Number(b[0]));
@@ -216,6 +219,43 @@ export default function HousingPage() {
                     </motion.div>
                   );
                 })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Vault / Holdings */}
+          {totalHoldings > 0 && (
+            <motion.div variants={cardAnim} className="glass-card !p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Warehouse size={14} className="text-[#f0b90b]" />
+                <span className="text-sm font-semibold text-white">Bóveda de Holdings</span>
+                <span className="text-[11px] text-[#f0b90b] ml-auto font-bold">${totalHoldings.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <img
+                  src={`/sprites/v2/vault_lv${vaultLevel}.png`}
+                  alt="Bóveda"
+                  className="w-12 h-12 sm:w-16 sm:h-16 object-contain pixelated"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-[#5c5c80]">Bóveda nivel {vaultLevel}</span>
+                    <Shield size={10} className="text-[#818cf8]" />
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {Object.entries(holdings || {}).slice(0, 5).map(([symbol, amount]) => (
+                      <span key={symbol} className="text-[10px] px-1.5 py-0.5 rounded-md glass text-[#d0d0e0]">
+                        {symbol}: ${Number(amount).toFixed(2)}
+                      </span>
+                    ))}
+                    {Object.keys(holdings || {}).length > 5 && (
+                      <span className="text-[10px] text-[#5c5c80]">+{Object.keys(holdings || {}).length - 5} más</span>
+                    )}
+                  </div>
+                </div>
+                <div className="hidden sm:flex flex-col items-center gap-1">
+                  <img src="/sprites/v2/gold_large.png" alt="Oro" className="w-8 h-8 object-contain pixelated opacity-60" />
+                </div>
               </div>
             </motion.div>
           )}

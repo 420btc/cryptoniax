@@ -6,7 +6,7 @@ Usa ~$2.70 de crédito (~73 sprites a $0.037/img)
 import requests, json, time, os, sys
 
 FAL_KEY = "db8964c5-dba3-433a-a9be-760ad5bca943:a684d89b1a7a10e6ff9895f2d14ff812"
-FAL_MODEL = "fal-ai/gpt-image-2"
+FAL_MODEL = "fal-ai/flux/schnell"
 HEADERS = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "public", "sprites", "v2")
@@ -86,7 +86,6 @@ def generate_image(prompt: str, name: str) -> bool:
     payload = {
         "prompt": prompt,
         "image_size": "square_hd",
-        "num_inference_steps": 28,
     }
     
     try:
@@ -107,7 +106,7 @@ def generate_image(prompt: str, name: str) -> bool:
 
 if __name__ == "__main__":
     total = len(SPRITES)
-    cost_per = 0.037
+    cost_per = 0.001
     print(f"🎨 Generando {total} sprites con {FAL_MODEL}")
     print(f"💰 Costo est: ${total * cost_per:.2f}\n")
     
@@ -117,7 +116,7 @@ if __name__ == "__main__":
     
     for i, (name, prompt) in enumerate(SPRITES.items(), 1):
         print(f"[{i}/{total}] ({i*100//total}%) {name}")
-        if generate_image(prompt, name):
+        if generate_image(prompt + ", crisp pixel art spritesheet style, no text no watermark", name):
             ok += 1
             cost += cost_per
         time.sleep(0.3)
