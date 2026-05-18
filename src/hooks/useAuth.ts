@@ -74,7 +74,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     usePortfolioStore.setState({
       userId: 'guest',
-      coins: 50,
+      coins: 1000,
       xp: 25,
       level: 2,
       holdings: { BTC: 0.05, ETH: 0.5, SOL: 2 },

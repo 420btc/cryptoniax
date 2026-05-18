@@ -23,7 +23,7 @@ const pulse = { animate: { scale: [1, 1.02, 1], transition: { duration: 2, repea
 
 export default function TradePanel() {
   const { profile } = useAuthStore();
-  const { trades, activeTrades, closedTrades, coins, level, xp, house, openTrade, checkTradeLimits } = usePortfolioStore();
+  const { activeTrades, closedTrades, coins, level, xp, house, openTrade, checkTradeLimits } = usePortfolioStore();
   const { burst, floatText } = useParticles();
   const prevClosedRef = useRef(closedTrades.length);
   const prevLevelRef = useRef(level);

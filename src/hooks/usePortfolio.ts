@@ -62,6 +62,8 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
   },
 
   initFromSupabase: async (userId: string) => {
+    // Guest users: skip Supabase — keep local state from signInAsGuest
+    if (userId === 'guest') return;
     await get().fetchAll(userId);
 
     // Subscribe to realtime changes
@@ -125,7 +127,7 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     // Deduct coins
     const newCoins = state.coins - params.amount;
 
-    if (userId) {
+    if (userId && userId !== 'guest') {
       try {
         const trade = await createTrade({
           user_id: userId,
@@ -201,7 +203,7 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
       if (trade.tp_price) {
         const hit = trade.side === 'long' ? currentPrice >= trade.tp_price : currentPrice <= trade.tp_price;
         if (hit) {
-          if (state.userId) {
+          if (state.userId && state.userId !== 'guest') {
             closeTrade(trade.id, pnl).then(() => get().fetchAll(state.userId!));
           } else {
             // Local close
@@ -222,7 +224,7 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
       if (trade.sl_price) {
         const hit = trade.side === 'long' ? currentPrice <= trade.sl_price : currentPrice >= trade.sl_price;
         if (hit) {
-          if (state.userId) {
+          if (state.userId && state.userId !== 'guest') {
             closeTrade(trade.id, pnl).then(() => get().fetchAll(state.userId!));
           } else {
             const updated = state.activeTrades.map(t =>
