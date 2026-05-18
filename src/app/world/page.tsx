@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import { Globe, MapPin, Users, TrendingUp } from 'lucide-react';
 import { useEffect } from 'react';
+import BackButton from '@/components/BackButton';
 
 const MapboxGlobe = dynamic(() => import('@/components/MapboxGlobe'), {
   ssr: false,
@@ -50,7 +51,8 @@ export default function WorldPage() {
       className="space-y-5"
     >
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <h1 className="text-2xl md:text-3xl font-bold text-white">🌍 HodlVille World</h1>
+        <BackButton />
+        <h1 className="text-2xl md:text-3xl font-bold text-white mt-2">🌍 HodlVille World</h1>
         <p className="text-[#8888b0] text-sm mt-1">
           Mapa global con traders en tiempo real. Conecta, desafía, conquista.
         </p>

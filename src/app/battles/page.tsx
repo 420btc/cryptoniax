@@ -7,6 +7,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import BattleArena from '@/components/BattleArena';
 import BattleTavernChat from '@/components/BattleTavernChat';
 import { Swords, Shield, Zap, TrendingUp, Users, MessageCircle } from 'lucide-react';
+import BackButton from '@/components/BackButton';
 
 export default function BattlesPage() {
   const { activeTrades, closedTrades } = usePortfolioStore();
@@ -95,7 +96,8 @@ export default function BattlesPage() {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-white">⚔️ Zona de Batallas</h1>
+        <BackButton />
+        <h1 className="text-2xl font-bold text-white mt-2">⚔️ Zona de Batallas</h1>
         <p className="text-[#8888b0] text-sm mt-1">
           Enfréntate a otros traders. Tus personajes luchan según sus stats de exchange.
         </p>

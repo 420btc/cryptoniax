@@ -10,6 +10,7 @@ import {
   ArrowRight, Crown, TreePine, Lamp, PawPrint, Pickaxe
 } from 'lucide-react';
 import Link from 'next/link';
+import BackButton from '@/components/BackButton';
 import { EXCHANGE_THEMES, ExchangeType } from '@/types';
 
 const NPC_LIST = [
@@ -80,7 +81,8 @@ export default function KingdomPage() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl md:text-3xl font-bold text-white">🏰 Mi Reino</h1>
+        <BackButton />
+        <h1 className="text-2xl md:text-3xl font-bold text-white mt-2">🏰 Mi Reino</h1>
         <p className="text-[#8888b0] text-sm mt-1">{username}, gestiona tu reino y sus ciudadanos</p>
       </motion.div>
 
