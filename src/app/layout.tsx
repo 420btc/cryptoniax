@@ -105,6 +105,18 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  // If session exists but still on landing, show loader (redirect fires via useEffect)
+  if (pathname === '/') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a1a]">
+        <div className="text-center">
+          <div className="text-4xl mb-4 animate-bounce">🏡</div>
+          <p className="text-[#8888aa] text-sm">Bienvenido a HodlVille...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a1a] bg-aurora-dark">
       <Navbar />
