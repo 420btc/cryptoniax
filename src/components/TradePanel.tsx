@@ -8,6 +8,7 @@ import Chart from './Chart';
 import LossOverlay from './LossOverlay';
 import { useParticles } from './ParticlesProvider';
 import { sfx } from '@/lib/sfx';
+import { notifyTradeClosed, notifyTradeOpened, notifyLevelUp, requestPermission } from '@/lib/notify';
 import { CRYPTO_SYMBOLS, CryptoSymbol, ExchangeType, EXCHANGE_THEMES } from '@/types';
 import {
   Activity, TrendingUp, BarChart3, Wallet, Clock, Zap, ArrowUpRight, ArrowDownRight,
@@ -30,6 +31,9 @@ export default function TradePanel() {
   const [currentPrice, setCurrentPrice] = useState(0);
   const [tradeType, setTradeType] = useState<'spot' | 'futures'>('futures');
   const [lossOverlay, setLossOverlay] = useState<{ show: boolean; pnl: number; symbol: string }>({ show: false, pnl: 0, symbol: '' });
+
+  // Request notification permission on mount
+  useEffect(() => { requestPermission(); }, []);
 
   // Detect loss without SL
   useEffect(() => {
@@ -62,6 +66,7 @@ export default function TradePanel() {
           burst({ kind: 'sparkles', x: window.innerWidth / 2, y: window.innerHeight / 2, count: 10, color: '#ef4466' });
           sfx.tradeLose();
         }
+        notifyTradeClosed(last.symbol, pnl, last.side);
       }
       prevClosedRef.current = closedTrades.length;
     }
@@ -73,6 +78,7 @@ export default function TradePanel() {
       burst({ kind: 'fireworks', x: window.innerWidth / 2, y: window.innerHeight / 2, count: 50 });
       floatText(window.innerWidth / 2, window.innerHeight / 2 - 60, `⬆ Nivel ${level}!`, '#fbbf24');
       sfx.levelUp();
+      notifyLevelUp(level);
       prevLevelRef.current = level;
     }
   }, [level]);
@@ -105,6 +111,7 @@ export default function TradePanel() {
     // Sparkle burst at trade button position
     burst({ kind: 'sparkles', x: window.innerWidth - 200, y: window.innerHeight - 200, count: 15, color: side === 'long' ? '#22d65e' : '#ef4466' });
     sfx.tradeOpen(side === 'long');
+    notifyTradeOpened(selectedSymbol, side, amt);
     setAmount('');
     setTpPrice('');
     setSlPrice('');
@@ -249,32 +256,76 @@ export default function TradePanel() {
           )}
         </div>
 
-        {/* Closed trades */}
-        <div className="glass-card !p-4">
-          <div className="flex items-center justify-between mb-3">
+        {/* Closed trades — bigger, detailed */}
+        <div className="glass-card !p-5">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <ListOrdered size={15} className="text-[#5c5c80]" />
-              <span className="text-sm font-semibold text-white">Historial</span>
+              <ListOrdered size={16} className="text-[#818cf8]" />
+              <span className="text-sm font-bold text-white">Historial de Trades</span>
             </div>
+            <span className="text-[10px] text-[#5c5c80]">{closedTrades.length} cerrados</span>
           </div>
-          <div className="space-y-1 max-h-[140px] overflow-y-auto">
+          <div className="max-h-[320px] overflow-y-auto">
             {closedTrades.length === 0 ? (
-              <p className="text-center text-[#5c5c80] text-xs py-4">Aún no hay trades cerrados</p>
+              <div className="text-center py-10">
+                <div className="text-3xl mb-2 opacity-20">📭</div>
+                <p className="text-[#5c5c80] text-sm">Aún no hay trades cerrados</p>
+                <p className="text-[#3c3c60] text-xs mt-1">Abre un trade desde el panel derecho</p>
+              </div>
             ) : (
-              closedTrades.slice(-15).reverse().map((t) => (
-                <div key={t.id} className="flex items-center justify-between py-1.5 border-b border-[rgba(99,102,241,0.05)] last:border-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-white font-medium">{t.symbol}</span>
-                    <span className={`text-[10px] ${t.side === 'long' ? 'text-[#22d65e]' : 'text-[#ef4466]'}`}>
-                      {t.side === 'long' ? '▲' : '▼'}
-                    </span>
-                    <span className="text-[10px] text-[#5c5c80]">{t.type === 'futures' ? `${t.leverage}x` : 'Spot'}</span>
-                  </div>
-                  <span className={`text-xs font-medium tabular-nums ${(t.pnl || 0) >= 0 ? 'text-[#22d65e]' : 'text-[#ef4466]'}`}>
-                    {(t.pnl || 0) >= 0 ? '+' : ''}{(t.pnl || 0).toFixed(2)}$
-                  </span>
+              <div className="space-y-1.5">
+                {/* Header */}
+                <div className="grid grid-cols-6 gap-2 px-3 py-2 text-[10px] font-medium text-[#5c5c80] border-b border-[rgba(99,102,241,0.06)]">
+                  <span>Símbolo</span>
+                  <span>Exchange</span>
+                  <span className="text-center">Lado</span>
+                  <span className="text-right">Entrada</span>
+                  <span className="text-right">Cantidad</span>
+                  <span className="text-right">P&L</span>
                 </div>
-              ))
+                {closedTrades.slice(-20).reverse().map((t, i) => {
+                  const theme = EXCHANGE_THEMES[t.exchange] || { color: '#5c5c80', name: t.exchange };
+                  const isWin = (t.pnl || 0) > 0;
+                  const date = t.closed_at ? new Date(t.closed_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '';
+                  const time = t.closed_at ? new Date(t.closed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                  return (
+                    <motion.div
+                      key={t.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.02 }}
+                      className="grid grid-cols-6 gap-2 px-3 py-2.5 rounded-lg hover:bg-[rgba(255,255,255,0.02)] transition"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-bold text-white">{t.symbol}</span>
+                        <span className="text-[9px] text-[#5c5c80] hidden sm:inline">{date}</span>
+                      </div>
+                      <div className="flex items-center text-[10px] truncate" style={{ color: theme.color }}>
+                        {theme.name}
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <span className={`text-xs font-bold ${t.side === 'long' ? 'text-[#22d65e]' : 'text-[#ef4466]'}`}>
+                          {t.side === 'long' ? '▲ L' : '▼ S'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-end text-[11px] text-[#d0d0e0] tabular-nums">
+                        ${t.entry_price?.toFixed(2) || '—'}
+                      </div>
+                      <div className="flex items-center justify-end text-[11px] text-[#8888b0] tabular-nums">
+                        ${t.amount?.toFixed(0) || '—'}
+                        {t.type === 'futures' ? <span className="text-[9px] text-[#5c5c80] ml-0.5">{t.leverage}x</span> : ''}
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded ${
+                          isWin ? 'text-[#22d65e] bg-[rgba(34,214,94,0.08)]' : 'text-[#ef4466] bg-[rgba(239,68,102,0.08)]'
+                        }`}>
+                          {isWin ? '+' : ''}{(t.pnl || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -282,28 +333,73 @@ export default function TradePanel() {
 
       {/* ===== RIGHT: New Trade Form ===== */}
       <div className="space-y-4">
-        {/* Profile Card */}
-        <div className="glass-card !p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6366f1] to-[#4f46e5] flex items-center justify-center text-lg">
-              🏡
+        {/* Profile Card — Bigger, richer */}
+        <div className="glass-card !p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative">
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-xl border-2 border-[rgba(99,102,241,0.2)]" />
+                : <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#6366f1] to-[#4f46e5] flex items-center justify-center text-xl shadow-lg shadow-[#6366f1]/20">👤</div>}
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#22d65e] border-2 border-[#0a0a1a]" />
             </div>
-            <div className="flex-1">
-              <div className="text-sm font-bold text-white">{profile?.email?.split('@')[0] || 'Trader'}</div>
-              <div className="text-[10px] text-[#5c5c80]">Nv.{level} · {closedTrades.length} trades</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-white truncate">{profile?.email?.split('@')[0] || 'Trader'}</div>
+              <div className="flex items-center gap-2 text-[10px] mt-0.5">
+                <span className="text-[#818cf8] font-medium">Nv.{level}</span>
+                <span className="text-[#5c5c80]">·</span>
+                <span className="text-[#22d65e]">{winRate}% win</span>
+              </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-[#5c5c80]">Monedas</div>
-              <div className="text-base font-bold text-white tabular-nums">${coins.toFixed(2)}</div>
+              <div className="text-[10px] text-[#5c5c80]">Saldo</div>
+              <div className="text-lg font-bold text-white tabular-nums">${coins.toFixed(2)}</div>
             </div>
           </div>
+
+          {/* XP bar */}
+          <div className="mb-4">
+            <div className="flex justify-between text-[10px] mb-1">
+              <span className="text-[#5c5c80]">Experiencia</span>
+              <span className="text-[#818cf8] tabular-nums">{xp}/{level * level * 100} XP</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-[rgba(99,102,241,0.1)] overflow-hidden">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-[#6366f1] to-[#818cf8]"
+                animate={{ width: `${Math.min(100, (xp / (level * level * 100)) * 100)}%` }}
+                transition={{ duration: 0.6 }}
+              />
+            </div>
+          </div>
+
+          {/* Quick stats grid */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {[
+              { label: 'Trades totales', value: closedTrades.length.toString(), color: '#818cf8' },
+              { label: 'Mejor P&L', value: bestTrade > 0 ? `+$${bestTrade.toFixed(2)}` : '—', color: '#22d65e' },
+              { label: 'P&L Total', value: `${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}`, color: totalPnl >= 0 ? '#22d65e' : '#ef4466' },
+              { label: 'Volumen', value: `$${totalVolume.toFixed(0)}`, color: '#f59e0b' },
+            ].map((s, i) => (
+              <div key={i} className="glass !rounded-lg p-2 text-center">
+                <div className="text-[11px] font-bold text-white">{s.value}</div>
+                <div className="text-[9px] text-[#5c5c80]" style={{ color: s.color }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
           {/* House preview */}
           {house && (
-            <div className="glass !rounded-lg p-2.5 flex items-center gap-2">
-              <span className="text-lg">{house.style === 'tent' ? '🏕️' : house.style === 'wood_house' ? '🪵' : house.style === 'stone_house' ? '🏠' : house.style === 'mansion' ? '🏛️' : '🏰'}</span>
-              <div>
-                <div className="text-xs font-medium text-white">Casa Lv.{house.level}</div>
-                <div className="text-[10px] text-[#5c5c80] capitalize">{house.style.replace('_', ' ')}</div>
+            <div className="glass !rounded-lg p-3 flex items-center gap-3">
+              {house.style === 'tent' ? <span className="text-2xl">🏕️</span>
+              : house.style === 'wood_house' ? <span className="text-2xl">🪵</span>
+              : house.style === 'stone_house' ? <span className="text-2xl">🏠</span>
+              : house.style === 'mansion' ? <span className="text-2xl">🏛️</span>
+              : <span className="text-2xl">🏰</span>}
+              <div className="flex-1">
+                <div className="text-xs font-bold text-white">Casa Nv.{house.level}</div>
+                <div className="text-[10px] text-[#5c5c80] capitalize">{house.style.replace(/_/g, ' ')}</div>
+              </div>
+              <div className="text-[10px] text-[#5c5c80]">
+                {house.decorations?.length || 0} decor.
               </div>
             </div>
           )}
