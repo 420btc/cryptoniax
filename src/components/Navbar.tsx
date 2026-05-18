@@ -60,7 +60,7 @@ export default function Navbar() {
                 whileHover={{ rotate: -8, scale: 1.1 }}
                 className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br from-[#6366f1] to-[#4f46e5] flex items-center justify-center text-base sm:text-lg shadow-lg shadow-[#6366f1]/20 group-hover:shadow-[#6366f1]/40 transition"
               >🏡</motion.div>
-              <span className="text-base sm:text-lg font-bold text-white tracking-tight hidden xs:block">
+              <span className="text-base sm:text-lg font-bold text-white tracking-tight hidden sm:block">
                 Hodl<span className="text-[#f0b90b]">Ville</span>
               </span>
             </Link>

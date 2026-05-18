@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/hooks/useAuth';
 import LoginModal from '@/components/LoginModal';
 import { AuroraBackground } from '@/components/ui/aurora-background';
 import { TrendingUp, Shield, Sparkles, Users, Zap, Wallet, ChevronRight, ArrowRight, BarChart3, Globe2, Gamepad2 } from 'lucide-react';
@@ -12,6 +14,14 @@ export default function LandingPage() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [scrolled, setScrolled] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const session = useAuthStore((s) => s.session);
+  const isGuest = useAuthStore((s) => s.isGuest);
+
+  // Si ya hay sesión mientras estamos en landing, redirigir YA
+  useEffect(() => {
+    if (session) router.replace('/dashboard');
+  }, [session, router]);
 
   useEffect(() => {
     const handleMouse = (e: MouseEvent) => {
@@ -41,7 +51,8 @@ export default function LandingPage() {
           }}
         />
 
-        {/* Navbar */}
+        {/* Navbar — solo visible SIN sesión */}
+        {!session && (
         <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled ? 'bg-[rgba(5,5,15,0.8)] backdrop-blur-2xl border-b border-[rgba(99,102,241,0.1)]' : 'bg-transparent'
         }`}>
@@ -76,6 +87,7 @@ export default function LandingPage() {
             </div>
           </div>
         </nav>
+        )}
 
         {/* Hero Section */}
         <section ref={heroRef} className="relative min-h-screen flex items-center justify-center px-6 pt-20">
