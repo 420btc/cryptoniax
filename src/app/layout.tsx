@@ -29,12 +29,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [session, userId, initUser]);
 
-  // Redirect authenticated users from landing to dashboard
+  // Redirect authenticated users (including guests) FROM landing TO dashboard
   useEffect(() => {
-    if (!loading && session && !isGuest && pathname === '/') {
+    if (!loading && session && pathname === '/') {
       router.replace('/dashboard');
     }
-  }, [loading, session, isGuest, pathname, router]);
+  }, [loading, session, pathname, router]);
 
   // Redirect unauthenticated users from protected routes to landing
   useEffect(() => {
@@ -54,7 +54,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Block guest users from protected routes
+  // Block guests from protected routes
   if (isGuest && PROTECTED_ROUTES.includes(pathname)) {
     return (
       <div className="min-h-screen bg-[#0a0a1a]">
@@ -65,19 +65,18 @@ function AuthGate({ children }: { children: React.ReactNode }) {
             <div>
               <h2 className="text-xl font-bold text-white mb-2">🔒 Acceso Premium</h2>
               <p className="text-[#8888b0] text-sm leading-relaxed">
-                El modo {pathname === '/dashboard' ? 'Trading' : pathname === '/world' ? 'Mundo' : pathname === '/housing' ? 'Casas' : 'Batallas'} requiere una cuenta real.
+                El modo {pathname.replace('/', '')} requiere conectar MetaMask.
               </p>
               <p className="text-[#5c5c80] text-xs mt-3">
-                Conecta MetaMask para tradear con datos reales, ver el globo Mapbox,
-                batallar con tus personajes y guardar tu progreso en la nube.
+                Conecta tu wallet para guardar progreso, batallar y construir tu casa.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/dashboard')}
                 className="px-6 py-3 rounded-xl glass text-white text-sm font-medium hover:bg-[rgba(255,255,255,0.05)] transition"
               >
-                ← Volver al inicio
+                ← Volver al trading
               </button>
               <LoginModal
                 isOpen={false}
