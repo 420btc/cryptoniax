@@ -41,6 +41,8 @@ export interface Trade {
   pnl: number;
   status: TradeStatus;
   character_id: string | null;
+  tp_price?: number;
+  sl_price?: number;
   opened_at: string;
   closed_at?: string;
 }

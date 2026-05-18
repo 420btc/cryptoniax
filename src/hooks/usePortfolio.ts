@@ -25,9 +25,12 @@ interface PortfolioState {
     entryPrice: number;
     amount: number;
     leverage: number;
+    tpPrice?: number;
+    slPrice?: number;
   }) => void;
   closeTrade: (tradeId: string, exitPrice: number) => void;
   updateHoldings: (symbol: string, amount: number) => void;
+  checkTradeLimits: (symbol: string, currentPrice: number) => void;
 }
 
 export const usePortfolioStore = create<PortfolioState>((set, get) => ({
@@ -69,6 +72,8 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
       pnl: 0,
       status: 'open',
       character_id: character.id,
+      tp_price: params.tpPrice,
+      sl_price: params.slPrice,
       opened_at: new Date().toISOString(),
     };
 
@@ -155,5 +160,34 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     }
     const house = createHouse(state.userId || '', newHoldings);
     set({ holdings: newHoldings, house });
+  },
+
+  checkTradeLimits: (symbol, currentPrice) => {
+    const state = get();
+    for (const trade of state.activeTrades) {
+      if (trade.symbol !== symbol) continue;
+      const { closeTrade } = get();
+
+      // Check TP
+      if (trade.tp_price) {
+        const tpHit = trade.side === 'long'
+          ? currentPrice >= trade.tp_price
+          : currentPrice <= trade.tp_price;
+        if (tpHit) {
+          closeTrade(trade.id, trade.tp_price);
+          continue;
+        }
+      }
+
+      // Check SL
+      if (trade.sl_price) {
+        const slHit = trade.side === 'long'
+          ? currentPrice <= trade.sl_price
+          : currentPrice >= trade.sl_price;
+        if (slHit) {
+          closeTrade(trade.id, trade.sl_price);
+        }
+      }
+    }
   },
 }));

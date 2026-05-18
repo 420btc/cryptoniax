@@ -12,16 +12,21 @@ import {
 
 export default function TradePanel() {
   const { profile } = useAuthStore();
-  const { trades, activeTrades, closedTrades, coins, level, xp, house, openTrade } = usePortfolioStore();
+  const { trades, activeTrades, closedTrades, coins, level, xp, house, openTrade, checkTradeLimits } = usePortfolioStore();
   const [selectedSymbol, setSelectedSymbol] = useState<CryptoSymbol>('BTC');
   const [currentPrice, setCurrentPrice] = useState(0);
   const [tradeType, setTradeType] = useState<'spot' | 'futures'>('futures');
   const [side, setSide] = useState<'long' | 'short'>('long');
   const [leverage, setLeverage] = useState(5);
   const [amount, setAmount] = useState('');
+  const [tpPrice, setTpPrice] = useState('');
+  const [slPrice, setSlPrice] = useState('');
   const [exchange, setExchange] = useState<ExchangeType>('bingx');
 
-  const handlePriceUpdate = (price: number) => setCurrentPrice(price);
+  const handlePriceUpdate = (price: number) => {
+    setCurrentPrice(price);
+    checkTradeLimits(selectedSymbol, price);
+  };
 
   const handleTrade = () => {
     const amt = parseFloat(amount);
@@ -34,8 +39,12 @@ export default function TradePanel() {
       entryPrice: currentPrice || (selectedSymbol === 'BTC' ? 67500 : selectedSymbol === 'ETH' ? 3450 : 145),
       amount: amt,
       leverage,
+      tpPrice: tpPrice ? parseFloat(tpPrice) : undefined,
+      slPrice: slPrice ? parseFloat(slPrice) : undefined,
     });
     setAmount('');
+    setTpPrice('');
+    setSlPrice('');
   };
 
   const winRate = closedTrades.length > 0
@@ -141,6 +150,8 @@ export default function TradePanel() {
                         </div>
                         <div className="text-[10px] text-[#5c5c80] mt-0.5">
                           {theme.name} · ${t.amount.toFixed(2)}
+                          {t.tp_price ? ` · TP: $${t.tp_price.toFixed(2)}` : ''}
+                          {t.sl_price ? ` · SL: $${t.sl_price.toFixed(2)}` : ''}
                         </div>
                       </div>
                     </div>
@@ -335,6 +346,36 @@ export default function TradePanel() {
               </div>
             </div>
           )}
+
+          {/* TP / SL */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-[10px] text-[#5c5c80] font-medium mb-1.5 block">
+                🎯 Take Profit
+              </label>
+              <input
+                type="number"
+                value={tpPrice}
+                onChange={(e) => setTpPrice(e.target.value)}
+                placeholder={selectedSymbol === 'BTC' ? '69000' : selectedSymbol === 'ETH' ? '3550' : '150'}
+                className="w-full glass !rounded-lg py-2.5 px-3 text-white text-sm font-medium tabular-nums focus:outline-none focus:border-[#22d65e] transition placeholder:text-[#3c3c60]"
+                step="any"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-[#5c5c80] font-medium mb-1.5 block">
+                🛑 Stop Loss
+              </label>
+              <input
+                type="number"
+                value={slPrice}
+                onChange={(e) => setSlPrice(e.target.value)}
+                placeholder={selectedSymbol === 'BTC' ? '66000' : selectedSymbol === 'ETH' ? '3350' : '140'}
+                className="w-full glass !rounded-lg py-2.5 px-3 text-white text-sm font-medium tabular-nums focus:outline-none focus:border-[#ef4466] transition placeholder:text-[#3c3c60]"
+                step="any"
+              />
+            </div>
+          </div>
 
           {/* Position size preview */}
           {parseFloat(amount) > 0 && (
