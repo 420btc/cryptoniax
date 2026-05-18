@@ -14,7 +14,7 @@ import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
-const PROTECTED_ROUTES = ['/dashboard', '/world', '/battles'];
+const PROTECTED_ROUTES = ['/dashboard', '/world', '/battles', '/housing'];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading, isGuest } = useAuth();
@@ -64,7 +64,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
             <div>
               <h2 className="text-xl font-bold text-white mb-2">🔒 Acceso Premium</h2>
               <p className="text-[#8888b0] text-sm leading-relaxed">
-                El modo {pathname === '/dashboard' ? 'Trading' : pathname === '/world' ? 'Mundo' : 'Batallas'} requiere una cuenta real.
+                El modo {pathname === '/dashboard' ? 'Trading' : pathname === '/world' ? 'Mundo' : pathname === '/housing' ? 'Casas' : 'Batallas'} requiere una cuenta real.
               </p>
               <p className="text-[#5c5c80] text-xs mt-3">
                 Regístrate con Google o MetaMask para tradear con datos reales, ver el globo Mapbox,

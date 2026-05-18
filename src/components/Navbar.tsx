@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
-import { BarChart3, Globe, LogOut, Wallet, TrendingUp, Menu, X, User, Home, Swords, ShoppingBag } from 'lucide-react';
+import { BarChart3, Globe, LogOut, Wallet, TrendingUp, Menu, X, User, Home, Swords, ShoppingBag, Building2 } from 'lucide-react';
 import { signOut } from '@/lib/supabase';
 import { useState } from 'react';
 import ProfileModal from './ProfileModal';
@@ -20,6 +20,7 @@ export default function Navbar() {
   const links = [
     { href: '/dashboard', label: 'Trading', icon: <BarChart3 size={16} /> },
     { href: '/world', label: 'Mundo', icon: <Globe size={16} /> },
+    { href: '/housing', label: 'Casas', icon: <Building2 size={16} /> },
     { href: '/battles', label: 'Batallas', icon: <Swords size={16} />, disabled: false },
     { href: '#auctions', label: 'Subastas', icon: <ShoppingBag size={16} />, disabled: true },
   ];
