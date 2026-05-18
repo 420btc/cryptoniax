@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { X, Wallet, Chrome } from 'lucide-react';
+import { X, Wallet, Chrome, ArrowRight } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -17,11 +17,8 @@ export default function LoginModal({ isOpen, onClose }: Props) {
 
   const handleGoogle = async () => {
     setLoading('google');
-    try {
-      await signInWithGoogle();
-    } catch (e) {
-      console.error(e);
-    }
+    try { await signInWithGoogle(); }
+    catch (e) { console.error(e); }
     setLoading(null);
   };
 
@@ -29,8 +26,7 @@ export default function LoginModal({ isOpen, onClose }: Props) {
     setLoading('metamask');
     const address = await connectMetaMask();
     if (address) {
-      // TODO: sign message with MetaMask to verify + create/link user in Supabase
-      alert(`MetaMask conectado: ${address.slice(0,6)}...${address.slice(-4)}`);
+      alert(`🔗 MetaMask conectado: ${address.slice(0,6)}...${address.slice(-4)}`);
     } else {
       alert('No se detectó MetaMask. Instala la extensión.');
     }
@@ -38,40 +34,64 @@ export default function LoginModal({ isOpen, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-[#1a1a3a] p-8 rounded-2xl pixel-border max-w-sm w-full mx-4 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-[#8888aa] hover:text-white">
-          <X size={20} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-[rgba(5,5,15,0.8)] backdrop-blur-xl"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative glass-card !rounded-2xl p-8 md:p-10 max-w-sm w-full mx-4 animate-scale-in">
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-[#5c5c80] hover:text-white hover:bg-white/5 transition"
+        >
+          <X size={16} />
         </button>
 
+        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-4xl mb-2">🏡</div>
-          <h2 className="text-2xl font-pixel text-[#F0B90B]">HodlVille</h2>
-          <p className="text-[#8888aa] text-sm mt-2">Donde tus HODLs construyen tu reino</p>
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#4f46e5] flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg shadow-[#6366f1]/25">
+            🏡
+          </div>
+          <h2 className="text-2xl font-bold text-white">HodlVille</h2>
+          <p className="text-[#8888b0] text-sm mt-1.5">Conecta para empezar tu aventura</p>
         </div>
 
+        {/* Buttons */}
         <div className="space-y-3">
           <button
             onClick={handleGoogle}
             disabled={loading !== null}
-            className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-3 px-4 transition disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 glass rounded-xl py-3.5 px-4 text-sm font-medium text-white hover:bg-[rgba(255,255,255,0.05)] transition disabled:opacity-50 group"
           >
-            <Chrome size={20} />
-            <span className="font-medium">Continuar con Google</span>
+            <Chrome size={18} />
+            Continuar con Google
+            <ArrowRight size={16} className="ml-auto text-[#5c5c80] group-hover:text-white transition" />
           </button>
 
           <button
             onClick={handleMetaMask}
             disabled={loading !== null}
-            className="w-full flex items-center justify-center gap-3 bg-[#F6851B]/20 hover:bg-[#F6851B]/30 border border-[#F6851B]/30 rounded-xl py-3 px-4 transition disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 glass rounded-xl py-3.5 px-4 text-sm font-medium text-white hover:bg-[rgba(255,255,255,0.05)] transition disabled:opacity-50 group"
           >
-            <Wallet size={20} className="text-[#F6851B]" />
-            <span className="font-medium">Conectar MetaMask</span>
+            <Wallet size={18} className="text-[#f6851b]" />
+            Conectar MetaMask
+            <ArrowRight size={16} className="ml-auto text-[#5c5c80] group-hover:text-white transition" />
           </button>
         </div>
 
-        <p className="text-center text-xs text-[#8888aa] mt-6">
-          HodlVille — Juego de trading simulado. Sin valor real.
+        {loading && (
+          <div className="mt-4 text-center text-xs text-[#8888b0] animate-pulse">
+            {loading === 'google' ? 'Autenticando con Google...' : 'Conectando MetaMask...'}
+          </div>
+        )}
+
+        <p className="text-center text-xs text-[#5c5c80] mt-6 leading-relaxed">
+          Al continuar, aceptas que HodlVille es un juego de trading simulado.
+          <br />Sin valor real. No es asesoramiento financiero.
         </p>
       </div>
     </div>

@@ -10,7 +10,7 @@ export default function WorldCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<PIXI.Application | null>(null);
   const { profile } = useAuthStore();
-  const { holdings, activeTrades, closedTrades, house } = usePortfolioStore();
+  const { holdings, activeTrades, closedTrades, house, level, coins } = usePortfolioStore();
   const [worldReady, setWorldReady] = useState(false);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function WorldCanvas() {
     const app = new PIXI.Application({
       width: canvasRef.current.clientWidth,
       height: 600,
-      backgroundColor: 0x0a0a1a,
+      backgroundColor: 0x05050f,
       antialias: false,
       resolution: window.devicePixelRatio || 1,
       autoDensity: true,
@@ -29,30 +29,44 @@ export default function WorldCanvas() {
     appRef.current = app;
     setWorldReady(true);
 
-    // Draw ground
-    const ground = new PIXI.Graphics();
-    ground.beginFill(0x1a1a3a);
-    ground.drawRect(0, 0, app.screen.width, app.screen.height);
-    ground.endFill();
+    // Stars
+    for (let i = 0; i < 50; i++) {
+      const star = new PIXI.Graphics();
+      star.beginFill(0xffffff, Math.random() * 0.3 + 0.1);
+      star.drawCircle(Math.random() * app.screen.width, Math.random() * app.screen.height, Math.random() * 1.5 + 0.5);
+      star.endFill();
+      app.stage.addChild(star);
+    }
 
-    // Grid pattern
+    // Ground
+    const ground = new PIXI.Graphics();
+    ground.beginFill(0x0a0b1e);
+    ground.drawRect(0, app.screen.height * 0.55, app.screen.width, app.screen.height * 0.45);
+    ground.endFill();
+    app.stage.addChild(ground);
+
+    // Grid
     const grid = new PIXI.Graphics();
-    grid.lineStyle(1, 0x2a2a5a, 0.3);
-    for (let x = 0; x < app.screen.width; x += 64) {
-      grid.moveTo(x, 0);
+    grid.lineStyle(1, 0x6366f1, 0.06);
+    for (let x = 0; x < app.screen.width; x += 48) {
+      grid.moveTo(x, app.screen.height * 0.55);
       grid.lineTo(x, app.screen.height);
     }
-    for (let y = 0; y < app.screen.height; y += 64) {
+    for (let y = app.screen.height * 0.55; y < app.screen.height; y += 48) {
       grid.moveTo(0, y);
       grid.lineTo(app.screen.width, y);
     }
-    app.stage.addChild(ground);
     app.stage.addChild(grid);
 
+    // Horizon glow
+    const horizon = new PIXI.Graphics();
+    horizon.beginFill(0x6366f1, 0.03);
+    horizon.drawRect(0, app.screen.height * 0.5, app.screen.width, app.screen.height * 0.1);
+    horizon.endFill();
+    app.stage.addChild(horizon);
+
     const handleResize = () => {
-      if (canvasRef.current) {
-        app.renderer.resize(canvasRef.current.clientWidth, 600);
-      }
+      if (canvasRef.current) app.renderer.resize(canvasRef.current.clientWidth, 600);
     };
     window.addEventListener('resize', handleResize);
 
@@ -63,167 +77,189 @@ export default function WorldCanvas() {
     };
   }, []);
 
-  // Draw house based on holdings
+  // Draw house
   useEffect(() => {
     if (!appRef.current || !house) return;
     const app = appRef.current;
 
-    // Remove old house if exists
     const oldHouse = app.stage.getChildByName('house_container');
     if (oldHouse) app.stage.removeChild(oldHouse);
 
     const container = new PIXI.Container();
     container.name = 'house_container';
 
-    const x = app.screen.width / 2 - 64;
-    const y = app.screen.height / 2 - 32;
+    const cx = app.screen.width / 2 - 32;
+    const baseY = app.screen.height * 0.72;
+    const w = Math.max(48, house.size);
+    const h = w * 0.7;
 
-    // House body based on level
-    const body = new PIXI.Graphics();
     const colors: Record<string, number> = {
-      tent: 0x8B5CF6,
-      wood_house: 0xA0522D,
-      stone_house: 0x808080,
-      mansion: 0x4A90D9,
-      castle: 0x7C3AED,
+      tent: 0x818cf8, wood_house: 0x8B5CF6, stone_house: 0x6366f1,
+      mansion: 0x4f46e5, castle: 0x4338ca,
     };
-    const bodyColor = colors[house.style] || 0x7C3AED;
+    const bodyColor = colors[house.style] || 0x6366f1;
+
+    // Shadow
+    const shadow = new PIXI.Graphics();
+    shadow.beginFill(0x000000, 0.2);
+    shadow.drawEllipse(cx + w / 2, baseY + h + 4, w * 0.6, 8);
+    shadow.endFill();
+    container.addChild(shadow);
 
     if (house.style === 'tent') {
-      // Triangle tent
-      body.beginFill(bodyColor);
-      body.moveTo(x + 32, y);
-      body.lineTo(x + 64, y + 40);
-      body.lineTo(x, y + 40);
-      body.closePath();
-      body.endFill();
+      const tent = new PIXI.Graphics();
+      tent.beginFill(bodyColor);
+      tent.moveTo(cx + w * 0.5, baseY - h * 0.3);
+      tent.lineTo(cx + w, baseY + h * 0.3);
+      tent.lineTo(cx, baseY + h * 0.3);
+      tent.closePath();
+      tent.endFill();
+      container.addChild(tent);
+      const pole = new PIXI.Graphics();
+      pole.lineStyle(2, 0xf0b90b, 0.7);
+      pole.moveTo(cx + w * 0.5, baseY - h * 0.3);
+      pole.lineTo(cx + w * 0.5, baseY - h * 0.4);
+      container.addChild(pole);
     } else {
-      // Rectangle house
-      const w = house.size;
-      const h = house.size * 0.7;
+      const body = new PIXI.Graphics();
       body.beginFill(bodyColor);
-      body.drawRoundedRect(x, y, w, h, 4);
+      body.drawRoundedRect(cx, baseY, w, h, 4);
       body.endFill();
+      container.addChild(body);
 
-      // Roof
       const roof = new PIXI.Graphics();
-      roof.beginFill(0x2d1b69, 1);
-      roof.moveTo(x - 8, y);
-      roof.lineTo(x + w / 2, y - h * 0.4);
-      roof.lineTo(x + w + 8, y);
+      roof.beginFill(0x312e81, 1);
+      roof.moveTo(cx - 8, baseY);
+      roof.lineTo(cx + w / 2, baseY - h * 0.45);
+      roof.lineTo(cx + w + 8, baseY);
       roof.closePath();
       roof.endFill();
       container.addChild(roof);
 
-      // Door
+      const roofLine = new PIXI.Graphics();
+      roofLine.lineStyle(1, 0xf0b90b, 0.3);
+      roofLine.moveTo(cx, baseY - h * 0.15);
+      roofLine.lineTo(cx + w, baseY - h * 0.15);
+      container.addChild(roofLine);
+
       const door = new PIXI.Graphics();
-      door.beginFill(0x4a3728);
-      door.drawRect(x + w * 0.38, y + h * 0.55, w * 0.24, h * 0.45);
+      door.beginFill(0x1e1b4b);
+      door.drawRect(cx + w * 0.38, baseY + h * 0.5, w * 0.24, h * 0.5);
       door.endFill();
       container.addChild(door);
 
-      // Windows
-      const window = new PIXI.Graphics();
-      window.beginFill(0x00E6FF, 0.6);
-      window.drawRect(x + w * 0.1, y + h * 0.2, w * 0.2, h * 0.2);
-      window.drawRect(x + w * 0.7, y + h * 0.2, w * 0.2, h * 0.2);
-      window.endFill();
-      container.addChild(window);
+      const handle = new PIXI.Graphics();
+      handle.beginFill(0xf0b90b, 0.8);
+      handle.drawCircle(cx + w * 0.56, baseY + h * 0.75, 2);
+      handle.endFill();
+      container.addChild(handle);
 
-      // Level indicator
+      const win = new PIXI.Graphics();
+      win.beginFill(0x00e6ff, 0.4);
+      win.drawRect(cx + w * 0.1, baseY + h * 0.15, w * 0.2, h * 0.2);
+      win.drawRect(cx + w * 0.7, baseY + h * 0.15, w * 0.2, h * 0.2);
+      win.endFill();
+      container.addChild(win);
+
+      const badgeBg = new PIXI.Graphics();
+      badgeBg.beginFill(0x6366f1, 0.3);
+      badgeBg.drawRoundedRect(cx + w / 2 - 16, baseY + h + 6, 32, 14, 4);
+      badgeBg.endFill();
+      container.addChild(badgeBg);
+
       const levelText = new PIXI.Text(`Lv.${house.level}`, {
-        fontFamily: 'monospace',
-        fontSize: 10,
-        fill: 0xF0B90B,
+        fontFamily: 'Inter, sans-serif',
+        fontSize: 9,
+        fill: 0xf0b90b,
+        fontWeight: 'bold',
       });
-      levelText.x = x + w / 2 - 14;
-      levelText.y = y + h + 4;
+      levelText.x = cx + w / 2 - 14;
+      levelText.y = baseY + h + 7;
       container.addChild(levelText);
     }
 
-    container.addChild(body);
     app.stage.addChild(container);
   }, [house]);
 
-  // Draw characters for active trades
+  // Draw characters
   useEffect(() => {
-    if (!appRef.current || !activeTrades) return;
+    if (!appRef.current) return;
     const app = appRef.current;
 
-    // Remove old characters
     const oldChars = app.stage.getChildByName('characters_container');
     if (oldChars) app.stage.removeChild(oldChars);
 
     const container = new PIXI.Container();
     container.name = 'characters_container';
 
-    activeTrades.forEach((trade, i) => {
-      const theme = EXCHANGE_THEMES[trade.exchange];
+    activeTrades.forEach((trade: any, i: number) => {
+      const theme = EXCHANGE_THEMES[trade.exchange as keyof typeof EXCHANGE_THEMES] || EXCHANGE_THEMES.other;
       const color = parseInt(theme.color.slice(1), 16);
-      const x = 80 + i * 100;
-      const y = app.screen.height - 120;
+      const x = 80 + i * 90;
+      const y = app.screen.height - 100;
+
+      const shadow = new PIXI.Graphics();
+      shadow.beginFill(0x000000, 0.15);
+      shadow.drawEllipse(x + 12, y + 34, 16, 4);
+      shadow.endFill();
+      container.addChild(shadow);
 
       const char = new PIXI.Graphics();
-
-      // Body
       char.beginFill(color);
-      char.drawRoundedRect(x, y, 24, 32, 4);
+      char.drawRoundedRect(x, y, 24, 28, 3);
       char.endFill();
 
-      // Head
-      char.beginFill(0xFFD700);
-      char.drawCircle(x + 12, y - 8, 10);
-      char.endFill();
+      const head = new PIXI.Graphics();
+      head.beginFill(0xffd700);
+      head.drawCircle(x + 12, y - 6, 9);
+      head.endFill();
+      container.addChild(head);
+      container.addChild(char);
 
-      // Exchange insignia
       const insig = new PIXI.Text(theme.insignia, {
-        fontFamily: 'monospace',
-        fontSize: 14,
+        fontFamily: 'Inter, sans-serif',
+        fontSize: 12,
+        fill: color,
       });
-      insig.x = x + 4;
-      insig.y = y - 14;
+      insig.x = x + 6;
+      insig.y = y - 18;
+      container.addChild(insig);
 
-      // Trade info
       const info = new PIXI.Text(
         `${trade.symbol}\n${trade.side === 'long' ? '▲' : '▼'} ${trade.type === 'futures' ? trade.leverage + 'x' : 'Spot'}`,
-        { fontFamily: 'monospace', fontSize: 8, fill: 0x8888aa, align: 'center' }
+        { fontFamily: 'Inter, sans-serif', fontSize: 8, fill: 0x5c5c80, align: 'center' }
       );
-      info.x = x - 4;
-      info.y = y + 36;
-
-      container.addChild(char);
-      container.addChild(insig);
+      info.x = x - 2;
+      info.y = y + 32;
       container.addChild(info);
     });
 
     app.stage.addChild(container);
   }, [activeTrades]);
 
-  // Animate
+  // Animation
   useEffect(() => {
     if (!appRef.current) return;
     const app = appRef.current;
-
     let elapsed = 0;
     const ticker = () => {
       elapsed += 0.02;
-      const houses = app.stage.getChildByName('house_container');
-      if (houses) {
-        houses.y = Math.sin(elapsed) * 2;
-      }
+      const hc = app.stage.getChildByName('house_container');
+      if (hc) hc.y = Math.sin(elapsed) * 3;
     };
     app.ticker.add(ticker);
-
-    return () => {
-      app.ticker.remove(ticker);
-    };
+    return () => { app.ticker.remove(ticker); };
   }, [worldReady]);
 
   return (
-    <div className="bg-[#12122a] rounded-2xl pixel-border overflow-hidden">
-      <div className="p-3 border-b border-[#2a2a5a] flex items-center gap-2">
-        <span className="text-sm font-pixel text-[#F0B90B]">🌍 MUNDO</span>
-        <span className="text-[#8888aa] text-xs ml-auto">HodlVille — Las casas crecen con tus HODLs</span>
+    <div className="glass-card !p-0 overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-[rgba(99,102,241,0.08)]">
+        <span className="text-sm font-bold text-white">🌍 HodlVille</span>
+        <div className="flex items-center gap-3 text-[10px] text-[#5c5c80]">
+          <span>👤 {profile?.email?.split('@')[0] || 'Trader'}</span>
+          <span>🏠 Lv.{house?.level || 1}</span>
+          <span>💰 ${coins.toFixed(0)}</span>
+        </div>
       </div>
       <div ref={canvasRef} className="w-full" style={{ height: 600 }} />
     </div>

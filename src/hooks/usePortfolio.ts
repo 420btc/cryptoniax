@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { Trade, House, Character, ExchangeType, TradeType, TradeSide, CryptoSymbol, CRYPTO_SYMBOLS } from '@/types';
+import { Trade, House, Character, ExchangeType, TradeType, TradeSide, CryptoSymbol } from '@/types';
 import { createCharacter, createHouse, getInitialCoins, calcFee, calcTradeXp, getLevel } from '@/lib/gameLogic';
 
 interface PortfolioState {
@@ -13,6 +13,8 @@ interface PortfolioState {
   characters: Character[];
   house: House | null;
   userId: string | null;
+  xp: number;
+  level: number;
 
   initUser: (userId: string) => void;
   openTrade: (params: {
@@ -37,11 +39,13 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
   characters: [],
   house: null,
   userId: null,
+  xp: 0,
+  level: 1,
 
   initUser: (userId) => {
     const holdings = [{ symbol: 'BTC', amount: 0.05 }, { symbol: 'ETH', amount: 0.5 }, { symbol: 'SOL', amount: 2 }];
     const house = createHouse(userId, holdings);
-    set({ userId, holdings, house, coins: getInitialCoins() });
+    set({ userId, holdings, house, coins: getInitialCoins(), xp: 0, level: 1 });
   },
 
   openTrade: (params) => {
@@ -97,13 +101,17 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
       closed_at: new Date().toISOString(),
     };
 
-    // Update character
-    const updatedChars = state.characters.map(c => {
+    // XP calculation
+    const gainXp = calcTradeXp({ amount: trade.amount, leverage: trade.leverage, pnl });
+    const newXp = state.xp + (isWin ? gainXp : Math.max(-gainXp, gainXp * -1.5));
+    const positiveXp = Math.max(0, newXp);
+    const newLevel = getLevel(positiveXp);
+
+    // Character updates
+    const updatedChars = state.characters.map((c: Character) => {
       if (c.id === trade.character_id) {
-        const gainXp = calcTradeXp({ amount: trade.amount, leverage: trade.leverage, pnl });
-        const newXp = c.xp + (isWin ? gainXp : 0);
-        const penaltyXp = isWin ? 0 : Math.floor(Math.abs(pnl) * 15);
-        const finalXp = Math.max(0, newXp - penaltyXp);
+        const charGainXp = calcTradeXp({ amount: trade.amount, leverage: trade.leverage, pnl });
+        const finalXp = Math.max(0, c.xp + (isWin ? charGainXp : -Math.floor(Math.abs(pnl) * 15)));
         return {
           ...c,
           xp: finalXp,
@@ -115,12 +123,22 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
       return c;
     });
 
+    // House update based on new holdings after trade result
+    const newHoldings = [...state.holdings];
+    const h = newHoldings.find(h => h.symbol === trade.symbol);
+    if (h) {
+      h.amount += pnl > 0 ? pnl * 0.001 : 0; // small amount for house
+    }
+
     set({
       coins: state.coins + trade.amount + pnl,
+      xp: positiveXp,
+      level: newLevel,
       activeTrades: state.activeTrades.filter(t => t.id !== tradeId),
       closedTrades: [...state.closedTrades, closedTrade],
       trades: state.trades.map(t => t.id === tradeId ? closedTrade : t),
       characters: updatedChars,
+      house: createHouse(state.userId || '', newHoldings),
     });
   },
 
