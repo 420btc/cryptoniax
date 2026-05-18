@@ -39,6 +39,8 @@ interface PortfolioState {
     slPrice?: number;
   }) => Promise<void>;
   checkTradeLimits: (symbol: string, currentPrice: number) => void;
+  addCoins: (amount: number) => void;
+  addXp: (amount: number) => void;
   syncFromDb: (data: any) => void;
 }
 
@@ -240,6 +242,17 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
   syncFromDb: (data: any) => {
     // Called by realtime subscription
     get().fetchAll(get().userId!);
+  },
+
+  addCoins: (amount: number) => {
+    set((s) => ({ coins: s.coins + amount }));
+  },
+
+  addXp: (amount: number) => {
+    const s = get();
+    const newXp = s.xp + amount;
+    const newLevel = Math.floor(Math.sqrt(newXp / 100)) + 1;
+    set({ xp: newXp, level: newLevel });
   },
 }));
 

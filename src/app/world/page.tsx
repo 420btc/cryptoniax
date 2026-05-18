@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import { Globe, MapPin, Users, TrendingUp } from 'lucide-react';
+import { useEffect } from 'react';
 
 const MapboxGlobe = dynamic(() => import('@/components/MapboxGlobe'), {
   ssr: false,
@@ -21,6 +22,19 @@ const cardAnim = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }
 
 export default function WorldPage() {
   const { activeTrades, closedTrades } = usePortfolioStore();
+
+  // Mark daily quest "visit_world"
+  useEffect(() => {
+    const key = 'hodlville_daily_quests';
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (!data.completed.includes('visit_world')) {
+        data.completed.push('visit_world');
+        localStorage.setItem(key, JSON.stringify(data));
+      }
+    }
+  }, []);
 
   const stats = [
     { icon: <TrendingUp size={14} />, label: 'Trades Activos', value: activeTrades.length.toString(), color: '#22d65e' },
