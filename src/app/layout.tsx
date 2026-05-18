@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { Web3Provider } from '@/lib/web3';
 import { useAuth } from '@/hooks/useAuth';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
@@ -12,16 +13,33 @@ import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const PROTECTED_ROUTES = ['/dashboard', '/world', '/battles'];
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   const { initUser, userId } = usePortfolioStore();
-  const [showLogin, setShowLogin] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (session?.user && !userId) {
       initUser(session.user.id);
     }
   }, [session, userId, initUser]);
+
+  // Redirect authenticated users from landing to dashboard
+  useEffect(() => {
+    if (!loading && session && pathname === '/') {
+      router.replace('/dashboard');
+    }
+  }, [loading, session, pathname, router]);
+
+  // Redirect unauthenticated users from protected routes to landing
+  useEffect(() => {
+    if (!loading && !session && PROTECTED_ROUTES.includes(pathname)) {
+      router.replace('/');
+    }
+  }, [loading, session, pathname, router]);
 
   if (loading) {
     return (
@@ -35,14 +53,15 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!session) {
-    return (
-      <>
-        <div className="min-h-screen bg-[#0a0a1a]">
-          {children}
+    // Only show login gate on protected routes; landing page handles its own login
+    if (PROTECTED_ROUTES.includes(pathname)) {
+      return (
+        <div className="min-h-screen bg-[#0a0a1a] flex items-center justify-center">
           <LoginModal isOpen={true} onClose={() => {}} />
         </div>
-      </>
-    );
+      );
+    }
+    return <>{children}</>;
   }
 
   return (
@@ -55,8 +74,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-import { useState } from 'react';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
