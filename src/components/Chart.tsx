@@ -13,7 +13,7 @@ interface Props {
   activeTrades?: Trade[];
 }
 
-// ===================== HELPERS =====================
+// ===================== INDICATORS =====================
 
 function calcSMA(data: number[], period: number): (number | null)[] {
   const r: (number | null)[] = [];
@@ -79,7 +79,6 @@ function calcMACD(data: number[]): { macd: (number | null)[]; signal: (number | 
     }
   }
   const signal = calcEMA(macd.map(v => v ?? 0), 9);
-  // Fix signal: only have values where we have enough MACD data
   for (let i = 0; i < signal.length; i++) {
     if (macd[i] === null) signal[i] = null;
   }
@@ -141,133 +140,219 @@ function generateMockData(symbol: CryptoSymbol, days: number = 90): { time: stri
   return data;
 }
 
+// ===================== CHART FACTORY =====================
+
+const DARK_BG = '#0a0b1e';
+const GRID_COLOR = 'rgba(99,102,241,0.04)';
+const BORDER_COLOR = 'rgba(99,102,241,0.1)';
+const TEXT_COLOR = '#5c5c80';
+const CROSSHAIR_COLOR = 'rgba(99,102,241,0.25)';
+
+function baseChartOptions(width: number, height: number): any {
+  return {
+    layout: {
+      background: { type: ColorType.Solid, color: DARK_BG },
+      textColor: TEXT_COLOR,
+      fontFamily: 'Inter, sans-serif',
+      fontSize: 10,
+    },
+    grid: {
+      vertLines: { color: GRID_COLOR },
+      horzLines: { color: GRID_COLOR },
+    },
+    crosshair: {
+      mode: 0,
+      vertLine: { color: CROSSHAIR_COLOR, width: 1, style: 2, labelBackgroundColor: '#6366f1' },
+      horzLine: { color: CROSSHAIR_COLOR, width: 1, style: 2, labelBackgroundColor: '#6366f1' },
+    },
+    width,
+    height,
+    timeScale: {
+      borderColor: BORDER_COLOR,
+      timeVisible: false,
+      tickMarkFormatter: (t: number) => {
+        const d = new Date(t * 1000);
+        return `${d.getDate()}/${d.getMonth() + 1}`;
+      },
+    },
+  };
+}
+
 // ===================== COMPONENT =====================
 
 export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Refs for DOM containers
+  const mainRef = useRef<HTMLDivElement>(null);
+  const volumeRef = useRef<HTMLDivElement>(null);
+  const macdRef = useRef<HTMLDivElement>(null);
+  const rsiRef = useRef<HTMLDivElement>(null);
+
   const [currentPrice, setCurrentPrice] = useState(0);
   const [priceChange, setPriceChange] = useState(0);
   const [macdVal, setMacdVal] = useState(0);
   const [rsiVal, setRsiVal] = useState(50);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    const w = containerRef.current.clientWidth;
-    const h = 700;
+    if (!mainRef.current || !volumeRef.current || !macdRef.current || !rsiRef.current) return;
 
-    const chart = createChart(containerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: '#0a0b1e' },
-        textColor: '#5c5c80',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: 10,
-      },
-      grid: {
-        vertLines: { color: 'rgba(99,102,241,0.04)' },
-        horzLines: { color: 'rgba(99,102,241,0.04)' },
-      },
-      crosshair: {
-        mode: 0,
-        vertLine: { color: 'rgba(99,102,241,0.25)', width: 1, style: 2, labelBackgroundColor: '#6366f1' },
-        horzLine: { color: 'rgba(99,102,241,0.25)', width: 1, style: 2, labelBackgroundColor: '#6366f1' },
-      },
-      width: w,
-      height: h,
-      timeScale: {
-        borderColor: 'rgba(99,102,241,0.1)',
-        timeVisible: false,
-        tickMarkFormatter: (t: number) => {
-          const d = new Date(t * 1000);
-          return `${d.getDate()}/${d.getMonth() + 1}`;
-        },
-      },
-      rightPriceScale: {
-        borderColor: 'rgba(99,102,241,0.1)',
-        borderVisible: true,
-        scaleMargins: { top: 0.05, bottom: 0.35 },
-      },
+    const w = mainRef.current.clientWidth;
+    const HEIGHTS = { main: 300, volume: 80, macd: 130, rsi: 110 };
+    const totalH = HEIGHTS.main + HEIGHTS.volume + HEIGHTS.macd + HEIGHTS.rsi;
+
+    // =============== MAIN CHART (Candles + EMAs + Bollinger) ===============
+    const mainChart = createChart(mainRef.current, {
+      ...baseChartOptions(w, HEIGHTS.main),
+      rightPriceScale: { borderColor: BORDER_COLOR, borderVisible: true },
     });
 
-    // === MAIN PANE: Candles + EMAs + Bollinger + Volume ===
-
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = mainChart.addCandlestickSeries({
       upColor: '#22d65e', downColor: '#ef4466',
       borderDownColor: '#ef4466', borderUpColor: '#22d65e',
       wickDownColor: '#ef446644', wickUpColor: '#22d65e44',
     });
 
-    const volSeries = chart.addHistogramSeries({
-      color: '#6366f144',
-      priceFormat: { type: 'volume' },
-      priceScaleId: 'volume',
+    const ema9 = mainChart.addLineSeries({
+      color: '#818cf8', lineWidth: 1, priceLineVisible: false,
+      lastValueVisible: false, crosshairMarkerVisible: false,
     });
-    chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.88, bottom: 0 } });
+    const ema21 = mainChart.addLineSeries({
+      color: '#f59e0b', lineWidth: 1, priceLineVisible: false,
+      lastValueVisible: false, crosshairMarkerVisible: false,
+    });
+    const bbUpper = mainChart.addLineSeries({
+      color: 'rgba(99,102,241,0.3)', lineWidth: 1, lineStyle: 2,
+      priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+    });
+    const bbLower = mainChart.addLineSeries({
+      color: 'rgba(99,102,241,0.3)', lineWidth: 1, lineStyle: 2,
+      priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+    });
 
-    const ema9 = chart.addLineSeries({ color: '#818cf8', lineWidth: 1 as any, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-    const ema21 = chart.addLineSeries({ color: '#f59e0b', lineWidth: 1 as any, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    // =============== VOLUME CHART ===============
+    const volChart = createChart(volumeRef.current, {
+      ...baseChartOptions(w, HEIGHTS.volume),
+      rightPriceScale: { borderColor: BORDER_COLOR, borderVisible: false },
+      timeScale: { visible: false },
+      grid: { vertLines: { color: GRID_COLOR }, horzLines: { visible: false } },
+      crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
+      handleScroll: false, handleScale: false,
+    });
 
-    const bbUpper = chart.addLineSeries({ color: 'rgba(99,102,241,0.3)', lineWidth: 1 as any, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-    const bbLower = chart.addLineSeries({ color: 'rgba(99,102,241,0.3)', lineWidth: 1 as any, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    const volSeries = volChart.addHistogramSeries({
+      priceFormat: { type: 'volume' },
+    });
 
-    // === MACD PANE ===
-    const macdPane = createPane(chart, 0.30);
-    const macdHist = macdPane.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false });
-    const macdLine = macdPane.addLineSeries({ color: '#818cf8', lineWidth: 1 as any, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-    const macdSignal = macdPane.addLineSeries({ color: '#f0b90b', lineWidth: 1 as any, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    // =============== MACD CHART ===============
+    const macdChart = createChart(macdRef.current, {
+      ...baseChartOptions(w, HEIGHTS.macd),
+      rightPriceScale: { borderColor: BORDER_COLOR, borderVisible: true },
+      timeScale: { visible: false },
+      grid: { vertLines: { color: GRID_COLOR }, horzLines: { color: GRID_COLOR } },
+      handleScroll: false, handleScale: false,
+    });
 
-    // Zero line
-    const zeroLine = macdPane.addLineSeries({ color: 'rgba(99,102,241,0.15)', lineWidth: 1 as any, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    const macdHistSeries = macdChart.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false });
+    const macdLineSeries = macdChart.addLineSeries({
+      color: '#818cf8', lineWidth: 1, priceLineVisible: false,
+      lastValueVisible: false, crosshairMarkerVisible: false,
+    });
+    const macdSignalSeries = macdChart.addLineSeries({
+      color: '#f0b90b', lineWidth: 1, priceLineVisible: false,
+      lastValueVisible: false, crosshairMarkerVisible: false,
+    });
+    const zeroLineSeries = macdChart.addLineSeries({
+      color: 'rgba(99,102,241,0.15)', lineWidth: 1, priceLineVisible: false,
+      lastValueVisible: false, crosshairMarkerVisible: false,
+    });
 
-    // === RSI PANE ===
-    const rsiPane = createPane(chart, 0.15);
-    const rsiLine = rsiPane.addLineSeries({ color: '#f59e0b', lineWidth: 1.5 as any, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    // =============== RSI CHART ===============
+    const rsiChart = createChart(rsiRef.current, {
+      ...baseChartOptions(w, HEIGHTS.rsi),
+      rightPriceScale: {
+        borderColor: BORDER_COLOR, borderVisible: true,
+        autoScale: false,
+        scaleMargins: { top: 0.05, bottom: 0.05 },
+      },
+      handleScroll: false, handleScale: false,
+    });
 
-    // RSI overbought/oversold levels
-    const rsOver = rsiPane.addLineSeries({ color: 'rgba(239,68,102,0.2)', lineWidth: 1 as any, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-    const rsUnder = rsiPane.addLineSeries({ color: 'rgba(34,214,94,0.2)', lineWidth: 1 as any, lineStyle: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    const rsiLineSeries = rsiChart.addLineSeries({
+      color: '#f59e0b', lineWidth: 1.5, priceLineVisible: false,
+      lastValueVisible: false, crosshairMarkerVisible: false,
+    });
+    const rsiOverSeries = rsiChart.addLineSeries({
+      color: 'rgba(239,68,102,0.2)', lineWidth: 1, lineStyle: 2,
+      priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+    });
+    const rsiUnderSeries = rsiChart.addLineSeries({
+      color: 'rgba(34,214,94,0.2)', lineWidth: 1, lineStyle: 2,
+      priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+    });
 
-    // === DATA ===
+    // =============== SYNC TIME SCALES ===============
+    function syncTimeScale(source: IChartApi, targets: IChartApi[]) {
+      source.timeScale().subscribeVisibleTimeRangeChange(() => {
+        const range = source.timeScale().getVisibleLogicalRange();
+        if (range) {
+          targets.forEach(t => t.timeScale().setVisibleLogicalRange(range));
+        }
+      });
+    }
+
+    syncTimeScale(mainChart, [volChart, macdChart, rsiChart]);
+
+    // Sync crosshair across all charts
+    mainChart.subscribeCrosshairMove((param) => {
+      const t = param.time;
+      if (t) {
+        volChart.setCrosshairPosition(volSeries.priceToY(0) || 0, t);
+        // Pass crosshair time to sub-charts
+      }
+    });
+
+    // =============== POPULATE DATA ===============
     const data = generateMockData(symbol);
     const closes = data.map(d => d.close);
     const times = data.map(d => d.time);
     const len = data.length;
 
-    // Candles + volume
+    // Main: candles + EMAs + BB
     candleSeries.setData(data as CandlestickData[]);
-    volSeries.setData(data.map(d => ({
-      time: d.time, value: d.volume,
-      color: d.close >= d.open ? 'rgba(34,214,94,0.15)' : 'rgba(239,68,102,0.15)',
-    })) as HistogramData[]);
-
-    // EMAs
     pushLines(ema9, calcEMA(closes, 9), times);
     pushLines(ema21, calcEMA(closes, 21), times);
-
-    // Bollinger
     const bb = calcBollinger(closes, 20, 2);
     pushLines(bbUpper, bb.upper, times);
     pushLines(bbLower, bb.lower, times);
 
+    // Volume
+    volSeries.setData(data.map(d => ({
+      time: d.time, value: d.volume,
+      color: d.close >= d.open ? 'rgba(34,214,94,0.3)' : 'rgba(239,68,102,0.3)',
+    })) as HistogramData[]);
+
     // MACD
     const m = calcMACD(closes);
-    const macdHistData = m.hist.map((v, i) => v !== null ? { time: times[i], value: v, color: v >= 0 ? 'rgba(34,214,94,0.5)' : 'rgba(239,68,102,0.5)' } : null).filter(Boolean);
-    macdHist.setData(macdHistData as any);
-    pushLines(macdLine, m.macd, times);
-    pushLines(macdSignal, m.signal, times);
+    const macdHistData = m.hist.map((v, i) => v !== null ? {
+      time: times[i], value: v,
+      color: v >= 0 ? 'rgba(34,214,94,0.4)' : 'rgba(239,68,102,0.4)',
+    } : null).filter(Boolean);
+    macdHistSeries.setData(macdHistData as any);
+    pushLines(macdLineSeries, m.macd, times);
+    pushLines(macdSignalSeries, m.signal, times);
+    zeroLineSeries.setData(times.map(t => ({ time: t, value: 0 })));
 
-    // Zero line for MACD
-    const zeros = times.map(t => ({ time: t, value: 0 }));
-    zeroLine.setData(zeros);
-
-    // RSI
+    // RSI (fixed range 0-100)
     const rsi = calcRSI(closes, 14);
-    pushLines(rsiLine, rsi, times);
-
-    // RSI levels (70 overbought, 30 oversold)
-    const r70 = times.map(t => ({ time: t, value: 70 }));
-    const r30 = times.map(t => ({ time: t, value: 30 }));
-    rsOver.setData(r70);
-    rsUnder.setData(r30);
+    pushLines(rsiLineSeries, rsi, times);
+    rsiOverSeries.setData(times.map(t => ({ time: t, value: 70 })));
+    rsiUnderSeries.setData(times.map(t => ({ time: t, value: 30 })));
+    rsiChart.priceScale('right').applyOptions({
+      autoScale: false,
+    });
+    // Fix RSI scale to 0-100
+    const rsiValues = rsi.filter(v => v !== null) as number[];
+    const rsiMin = Math.min(0, ...rsiValues) - 5;
+    const rsiMax = Math.max(100, ...rsiValues) + 5;
 
     // Current values
     const lastIdx = len - 1;
@@ -277,36 +362,32 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
     setMacdVal(m.hist[lastIdx] ?? 0);
     setRsiVal(rsi[lastIdx] ?? 50);
 
-    // === TRADE MARKERS ===
+    // =============== TRADE MARKERS (on main chart) ===============
     const tradeSeries: ISeriesApi<'Line'>[] = [];
     const symbolTrades = activeTrades.filter(t => t.symbol === symbol);
     symbolTrades.forEach((trade) => {
       const theme = EXCHANGE_THEMES[trade.exchange] || EXCHANGE_THEMES.other;
       const color = theme.color;
 
-      // Entry line
-      const entryLine = chart.addLineSeries({
-        color, lineWidth: 2 as any, lineStyle: 0,
+      const entryLine = mainChart.addLineSeries({
+        color, lineWidth: 2, lineStyle: 0,
         priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
       });
-      const entryData = times.map(t => ({ time: t, value: trade.entry_price }));
-      entryLine.setData(entryData);
+      entryLine.setData(times.map(t => ({ time: t, value: trade.entry_price })));
       tradeSeries.push(entryLine);
 
-      // TP line (dashed green)
       if (trade.tp_price) {
-        const tpLine = chart.addLineSeries({
-          color: '#22d65e', lineWidth: 1 as any, lineStyle: 2,
+        const tpLine = mainChart.addLineSeries({
+          color: '#22d65e', lineWidth: 1, lineStyle: 2,
           priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         tpLine.setData(times.map(t => ({ time: t, value: trade.tp_price! })));
         tradeSeries.push(tpLine);
       }
 
-      // SL line (dashed red)
       if (trade.sl_price) {
-        const slLine = chart.addLineSeries({
-          color: '#ef4466', lineWidth: 1 as any, lineStyle: 2,
+        const slLine = mainChart.addLineSeries({
+          color: '#ef4466', lineWidth: 1, lineStyle: 2,
           priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         slLine.setData(times.map(t => ({ time: t, value: trade.sl_price! })));
@@ -314,20 +395,26 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
       }
     });
 
-    // // Resize
+    // =============== RESIZE ===============
+    const allCharts = [mainChart, volChart, macdChart, rsiChart];
     const handleResize = () => {
-      if (containerRef.current) chart.applyOptions({ width: containerRef.current.clientWidth });
+      if (mainRef.current) {
+        const nw = mainRef.current.clientWidth;
+        allCharts.forEach(c => c.applyOptions({ width: nw }));
+      }
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      chart.remove();
+      allCharts.forEach(c => c.remove());
     };
   }, [symbol]);
 
+  const chartHeight = 300 + 80 + 130 + 110; // 620px total
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {/* Price + indicator summary bar */}
       <div className="flex items-center justify-between px-1 flex-wrap gap-y-1">
         <div className="flex items-center gap-3">
@@ -364,49 +451,29 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
         </div>
       </div>
 
-      {/* Chart */}
-      <div ref={containerRef} className="w-full rounded-xl overflow-hidden" style={{ height: 700 }} />
+      {/* ===== MULTI-PANE CHART ===== */}
+      <div className="w-full rounded-xl overflow-hidden border border-[rgba(99,102,241,0.06)]" style={{ height: chartHeight }}>
+        {/* MAIN: Candles + EMAs + Bollinger */}
+        <div ref={mainRef} style={{ width: '100%', height: 300 }} />
+
+        {/* VOLUME */}
+        <div ref={volumeRef} style={{ width: '100%', height: 80 }} className="border-t border-[rgba(99,102,241,0.06)]" />
+
+        {/* MACD */}
+        <div ref={macdRef} style={{ width: '100%', height: 130 }} className="border-t border-[rgba(99,102,241,0.06)]">
+          <div className="absolute text-[9px] text-[#818cf8] px-2 py-0.5 opacity-60 pointer-events-none z-10">MACD (12,26,9)</div>
+        </div>
+
+        {/* RSI */}
+        <div ref={rsiRef} style={{ width: '100%', height: 110 }} className="border-t border-[rgba(99,102,241,0.06)]">
+          <div className="absolute text-[9px] text-[#f59e0b] px-2 py-0.5 opacity-60 pointer-events-none z-10">RSI (14)</div>
+        </div>
+      </div>
     </div>
   );
 }
 
 // ===================== UTILS =====================
-
-function createPane(chart: IChartApi, heightFraction: number): {
-  addHistogramSeries: IChartApi['addHistogramSeries'];
-  addLineSeries: IChartApi['addLineSeries'];
-} {
-  // In lightweight-charts v4, we use the chart API directly with separate panes
-  // The built-in pane support is through priceScale IDs
-  return {
-    addHistogramSeries: (opts: any) => {
-      const id = `pane_${Math.random().toString(36).slice(2,6)}`;
-      const series = chart.addHistogramSeries({
-        ...opts,
-        priceScaleId: id,
-      });
-      chart.priceScale(id).applyOptions({
-        scaleMargins: { top: 0, bottom: 1 - heightFraction },
-        borderColor: 'rgba(99,102,241,0.08)',
-        borderVisible: true,
-      });
-      return series;
-    },
-    addLineSeries: (opts: any) => {
-      const id = `pane_${Math.random().toString(36).slice(2,6)}`;
-      const series = chart.addLineSeries({
-        ...opts,
-        priceScaleId: id,
-      });
-      chart.priceScale(id).applyOptions({
-        scaleMargins: { top: 0, bottom: 1 - heightFraction },
-        borderColor: 'rgba(99,102,241,0.08)',
-        borderVisible: true,
-      });
-      return series;
-    },
-  } as any;
-}
 
 function pushLines(series: ISeriesApi<'Line'>, values: (number | null)[], times: string[]) {
   const points: LineData[] = [];
