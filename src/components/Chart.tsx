@@ -244,7 +244,7 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
     });
 
     const rsiLineSeries = rsiChart.addLineSeries({
-      color: '#f59e0b', lineWidth: 1.5, priceLineVisible: false,
+      color: '#f59e0b', lineWidth: 2, priceLineVisible: false,
       lastValueVisible: false, crosshairMarkerVisible: false,
     });
     const rsiOverSeries = rsiChart.addLineSeries({

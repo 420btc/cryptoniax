@@ -33,7 +33,7 @@ export default function MapboxGlobe() {
     import('mapbox-gl').then((mapboxgl) => {
       if (!mounted || !containerRef.current) return;
 
-      mapboxgl.accessToken = MAPBOX_TOKEN;
+      (mapboxgl as any).accessToken = MAPBOX_TOKEN;
 
       map = new mapboxgl.Map({
         container: containerRef.current!,
