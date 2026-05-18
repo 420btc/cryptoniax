@@ -19,7 +19,7 @@ export default function Navbar() {
     { href: '/dashboard', label: 'Trading', icon: <BarChart3 size={16} /> },
     { href: '/world', label: 'Mundo', icon: <Globe size={16} /> },
     // Placeholder links for future features
-    { href: '#battles', label: 'Batallas', icon: <Swords size={16} />, disabled: true },
+    { href: '/battles', label: 'Batallas', icon: <Swords size={16} />, disabled: false },
     { href: '#auctions', label: 'Subastas', icon: <ShoppingBag size={16} />, disabled: true },
   ];
 

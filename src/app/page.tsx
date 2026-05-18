@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import LoginModal from '@/components/LoginModal';
-import { TrendingUp, Shield, Sparkles, Users, ArrowRight, ChevronDown, Gamepad2, BarChart3, Globe2, Wallet } from 'lucide-react';
+import { AuroraBackground } from '@/components/ui/aurora-background';
+import { TrendingUp, Shield, Sparkles, Users, Zap, Wallet, ChevronRight, ArrowRight, BarChart3, Globe2, Gamepad2 } from 'lucide-react';
 
 export default function LandingPage() {
   const [showLogin, setShowLogin] = useState(false);
@@ -28,33 +30,8 @@ export default function LandingPage() {
 
   return (
     <>
-      <div className="relative min-h-screen overflow-hidden gradient-bg">
-        {/* Ambient gradient orbs */}
-        <div
-          className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full opacity-20 blur-[120px] pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)',
-            transform: `translate(${(mousePos.x - 0.5) * -30}px, ${(mousePos.y - 0.5) * -30}px)`,
-            transition: 'transform 0.3s ease-out',
-          }}
-        />
-        <div
-          className="absolute top-1/3 right-1/4 w-[500px] h-[500px] rounded-full opacity-15 blur-[100px] pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle, rgba(240,185,11,0.3) 0%, transparent 70%)',
-            transform: `translate(${(mousePos.x - 0.5) * 40}px, ${(mousePos.y - 0.5) * 20}px)`,
-            transition: 'transform 0.4s ease-out',
-          }}
-        />
-        <div
-          className="absolute bottom-1/4 right-1/3 w-[400px] h-[400px] rounded-full opacity-10 blur-[80px] pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle, rgba(0,230,255,0.3) 0%, transparent 70%)',
-            transform: `translate(${(mousePos.x - 0.5) * -20}px, ${(mousePos.y - 0.5) * 40}px)`,
-            transition: 'transform 0.5s ease-out',
-          }}
-        />
-
+      <div className="relative min-h-screen overflow-hidden bg-[#0a0a1a]">
+        <AuroraBackground showRadialGradient={false} className="!bg-transparent">
         {/* Grid overlay */}
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -163,6 +140,7 @@ export default function LandingPage() {
           {/* Bottom fade */}
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[var(--bg-deep)] to-transparent pointer-events-none" />
         </section>
+        </AuroraBackground>
 
         {/* Features Section */}
         <section id="features" className="relative px-6 py-24 md:py-32">
