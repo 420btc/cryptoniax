@@ -106,7 +106,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0a1a]">
+    <div className="min-h-screen flex flex-col bg-[#0a0a1a] bg-aurora-dark">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 py-6 w-full flex-1">
         {children}

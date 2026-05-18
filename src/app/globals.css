@@ -230,3 +230,103 @@ body {
 
 /* Pixel art rendering for PixiJS canvas */
 canvas { image-rendering: auto; }
+
+/* ===================== BACKGROUND IMAGES (FAL) ===================== */
+@layer utilities {
+  /* Dashboard backgrounds */
+  .bg-dashboard-dark {
+    background-image: url('/backgrounds/dashboard_dark.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  .bg-dashboard-grid {
+    background-image: url('/backgrounds/dashboard_grid.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* Card backgrounds — subtle, low opacity overlay */
+  .bg-card-glass {
+    background:
+      url('/backgrounds/card_glass_bg.png') center/cover no-repeat,
+      var(--bg-glass);
+    background-blend-mode: overlay;
+  }
+  .bg-card-gold {
+    background:
+      url('/backgrounds/card_gold_bg.png') center/cover no-repeat,
+      var(--bg-glass);
+    background-blend-mode: overlay;
+  }
+
+  /* Battle */
+  .bg-battle-arena {
+    background-image: url('/backgrounds/battle_arena.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-battle-victory {
+    background-image: url('/backgrounds/battle_victory.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-battle-defeat {
+    background-image: url('/backgrounds/battle_defeat.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* Housing */
+  .bg-housing-tent {
+    background-image: url('/backgrounds/housing_tent.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-housing-cabin {
+    background-image: url('/backgrounds/housing_cabin.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-housing-mansion {
+    background-image: url('/backgrounds/housing_mansion.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-housing-castle {
+    background-image: url('/backgrounds/housing_castle.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* World */
+  .bg-world-map {
+    background-image: url('/backgrounds/world_map_bg.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-world-globe {
+    background-image: url('/backgrounds/world_globe_bg.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* General */
+  .bg-aurora-dark {
+    background-image: url('/backgrounds/aurora_dark.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  .bg-cyber-dark {
+    background-image: url('/backgrounds/cyber_dark.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .bg-particles-dark {
+    background-image: url('/backgrounds/particles_dark.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+}
