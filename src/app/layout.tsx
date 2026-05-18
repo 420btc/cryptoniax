@@ -32,10 +32,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   // Redirect unauthenticated users from protected routes to landing
   useEffect(() => {
-    if (!loading && !session && PROTECTED_ROUTES.includes(pathname)) {
+    if (!loading && !session && !isGuest && PROTECTED_ROUTES.includes(pathname)) {
       router.replace('/');
     }
-  }, [loading, session, pathname, router]);
+  }, [loading, session, isGuest, pathname, router]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -94,6 +94,14 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // If session exists and on landing, just render children without Navbar wrapper
+  if (pathname === '/') {
+    return <>{children}</>;
+  }
+
+  // Si no hay sesión (y no es ruta protegida, porque eso se filtró arriba)
+  // OJO: Si NO hay sesión y estás en landing, esto ya no se ejecuta porque devolvimos <>{children}</> arriba,
+  // pero lo movemos por si acaso.
   if (!session) {
     if (PROTECTED_ROUTES.includes(pathname)) {
       return (
@@ -102,12 +110,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
-    return <>{children}</>;
-  }
-
-  // If session exists and on landing, just render children without Navbar wrapper
-  if (pathname === '/') {
-    return <>{children}</>;
+    // Si no es protegida y no hay sesión (ej: landing), renderizamos normal sin layout wrapper si es /
+    if (pathname === '/') return <>{children}</>;
   }
 
   return (

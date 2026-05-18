@@ -32,12 +32,13 @@ export default function LoginModal({ isOpen, onClose, trigger }: Props) {
     await connectMetaMask();
     setLoading(null);
     close();
+    if (window.location.pathname === '/') window.location.href = '/dashboard';
   };
 
   const handleGuest = () => {
     signInAsGuest();
     close();
-    window.location.href = '/dashboard';
+    if (window.location.pathname === '/') window.location.href = '/dashboard';
   };
 
   return (
