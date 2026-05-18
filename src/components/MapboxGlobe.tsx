@@ -32,7 +32,19 @@ export default function MapboxGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [loaded, setLoaded] = useState(false);
+  const [mapError, setMapError] = useState(false);
   const { profile } = useAuthStore();
+
+  // Load mapbox CSS dynamically (avoids Vercel CSS import issue)
+  useEffect(() => {
+    if (!document.getElementById('mapbox-css')) {
+      const link = document.createElement('link');
+      link.id = 'mapbox-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css';
+      document.head.appendChild(link);
+    }
+  }, []);
   const { activeTrades, house } = usePortfolioStore();
 
   useEffect(() => {
@@ -43,6 +55,7 @@ export default function MapboxGlobe() {
 
     import('mapbox-gl').then((mapboxgl) => {
       if (!mounted || !containerRef.current) return;
+      if (!MAPBOX_TOKEN) { setMapError(true); return; }
 
       (mapboxgl as any).accessToken = MAPBOX_TOKEN;
 
@@ -136,6 +149,8 @@ export default function MapboxGlobe() {
         requestAnimationFrame(spinGlobe);
       };
       spinGlobe();
+    }).catch(() => {
+      if (mounted) setMapError(true);
     });
 
     return () => {
@@ -161,7 +176,16 @@ export default function MapboxGlobe() {
         </div>
       </div>
       <div ref={containerRef} style={{ width: '100%', height: 500 }} />
-      {!loaded && (
+      {mapError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[rgba(5,5,15,0.8)]">
+          <div className="text-center space-y-2">
+            <Globe size={40} className="mx-auto text-[#5c5c80]" />
+            <p className="text-sm text-[#8888b0]">Mapa no disponible</p>
+            <p className="text-[10px] text-[#5c5c80]">Requiere Mapbox token en Vercel</p>
+          </div>
+        </div>
+      )}
+      {!loaded && !mapError && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="animate-spin w-6 h-6 border-2 border-[#818cf8] border-t-transparent rounded-full" />
         </div>
