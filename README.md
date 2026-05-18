@@ -277,14 +277,14 @@ Ver `src/lib/gameEngine.ts` y `src/components/KingdomCanvas.tsx` para el patrón
 ## ❌ Problemas Conocidos
 
 ### CRÍTICOS
-1. **Double navbar intermitente** — El AuthGate cortocircuita session+pathname='/' con loader, pero en algunos casos (carga lenta, redirect retrasado) la landing page con su nav se renderiza brevemente antes del redirect.
+1. **Double navbar** — ✅ FIXED (commit df4e7143). Causa: la landing page tenía su propio `<nav>` fijo que competía con el Navbar de la app durante la transición auth. Fix: 
+   - Landing Navbar ahora solo se renderiza si `!session` (usa `useAuthStore`)
+   - Layout wrapper usa `key={session ? 'authed' : 'anon'}` para forzar remount en cambio de auth
+   - AuthGate ya tenía loader para cortocircuitar la landing page cuando hay sesión
 
-2. **Navbar "mal"** — Usuario reporta navbar duplicado/inaccesible. Posible causa: 
-   - El Navbar tiene `hidden xs:block` pero `xs` no es breakpoint estándar de Tailwind → siempre visible
-   - Los links del Navbar deberían funcionar (son `<Link>` de Next.js)
-   - Verificar que el `useAuthStore` devuelve correctamente `isGuest` para que el botón 🦊 Wallet aparezca
+2. **Navbar texto oculto** — ✅ FIXED. `hidden xs:block` → `hidden sm:block` (xs no es breakpoint de Tailwind, causaba que el texto "HodlVille" estuviera siempre oculto)
 
-3. **Dashboard "encima del fondo de trading"** — Posible problema con `bg-aurora-dark` que referencia `/backgrounds/aurora_dark.png`. Si el archivo no existe, el fondo se ve mal. También puede ser que el dashboard renderice duplicado por un redirect fallido.
+3. **Dashboard con fondo extra** — ✅ FIXED. `bg-aurora-dark` removido del layout wrapper. Causaba una imagen de fondo adicional (`/backgrounds/aurora_dark.png`) que competía visualmente con el contenido del dashboard.
 
 ### IMPORTANTES
 4. **Trades no persisten en guest** — SOLUCIONADO con `userId !== 'guest'` checks, pero verificar que los trades se muestren correctamente en el panel después de abrir.
