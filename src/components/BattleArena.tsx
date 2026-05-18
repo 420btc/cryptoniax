@@ -3,22 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { Swords, Shield, Heart, Zap } from 'lucide-react';
-
-interface Fighter {
-  name: string;
-  exchange: string;
-  type: 'warrior' | 'merchant';
-  level: number;
-  hp: number;
-  maxHp: number;
-  atk: number;
-  def: number;
-  color: string;
-  /** Ruta del sprite v2 (e.g. '/sprites/v2/hero_bingx_warrior_lv3.png') */
-  spritePath: string;
-  /** Fallback emoji si la imagen tarda/falla */
-  spriteEmoji: string;
-}
+import { Fighter } from '@/lib/battleEngine';
 
 interface Props {
   player: Fighter;
