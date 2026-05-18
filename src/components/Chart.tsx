@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   createChart, ColorType, IChartApi, ISeriesApi,
   CandlestickData, HistogramData, LineData, Time
 } from 'lightweight-charts';
 import { CryptoSymbol, Trade, EXCHANGE_THEMES } from '@/types';
+import { useRealtimeCrypto, CandleData } from '@/hooks/useRealtimeCrypto';
 
 interface Props {
   symbol: CryptoSymbol;
-  onPriceUpdate?: (price: number) => void;
+  onPriceUpdate?: (price: number, change24h: number) => void;
   activeTrades?: Trade[];
 }
 
@@ -105,42 +106,7 @@ function calcBollinger(data: number[], period: number = 20, stdDev: number = 2):
   return { upper, middle, lower };
 }
 
-// ===================== MOCK DATA =====================
-
-function generateMockData(symbol: CryptoSymbol, days: number = 90): { time: string; open: number; high: number; low: number; close: number; volume: number }[] {
-  const basePrices: Record<string, number> = { BTC: 67500, ETH: 3450, SOL: 145 };
-  const base = basePrices[symbol] || 100;
-  const data: any[] = [];
-  const now = new Date();
-  let prevClose = base;
-  let trend = Math.random() > 0.5 ? 1 : -1;
-  let trendDays = 0;
-
-  for (let i = days; i >= 0; i--) {
-    const t = new Date(now.getTime() - i * 3600000 * 24);
-    const timeStr = t.toISOString().slice(0, 10);
-    if (data.length > 0 && data[data.length - 1].time === timeStr) continue;
-
-    trendDays++;
-    if (trendDays > 5 + Math.floor(Math.random() * 8)) {
-      trend = Math.random() > 0.5 ? 1 : -1;
-      trendDays = 0;
-    }
-    const vol = base * 0.015;
-    const tf = trend * vol * 0.3;
-    const open = prevClose;
-    const change = (Math.random() - 0.48) * vol + tf;
-    const close = open + change;
-    const high = Math.max(open, close) + Math.random() * vol * 0.4;
-    const low = Math.min(open, close) - Math.random() * vol * 0.4;
-    const volume = Math.floor(Math.random() * 8000 + 2000 + Math.abs(change) * 50000);
-    data.push({ time: timeStr, open, high, low, close, volume });
-    prevClose = close;
-  }
-  return data;
-}
-
-// ===================== CHART FACTORY =====================
+// ===================== CHART OPTIONS =====================
 
 const DARK_BG = '#0a0b1e';
 const GRID_COLOR = 'rgba(99,102,241,0.04)';
@@ -181,25 +147,32 @@ function baseChartOptions(width: number, height: number): any {
 // ===================== COMPONENT =====================
 
 export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Props) {
+  const { candles, currentPrice, priceChange24h, loading, error } = useRealtimeCrypto(symbol);
+
   // Refs for DOM containers
   const mainRef = useRef<HTMLDivElement>(null);
   const volumeRef = useRef<HTMLDivElement>(null);
   const macdRef = useRef<HTMLDivElement>(null);
   const rsiRef = useRef<HTMLDivElement>(null);
 
-  const [currentPrice, setCurrentPrice] = useState(0);
-  const [priceChange, setPriceChange] = useState(0);
-  const [macdVal, setMacdVal] = useState(0);
-  const [rsiVal, setRsiVal] = useState(50);
-
+  // Notify parent of price updates
   useEffect(() => {
-    if (!mainRef.current || !volumeRef.current || !macdRef.current || !rsiRef.current) return;
+    if (currentPrice > 0 && onPriceUpdate) {
+      onPriceUpdate(currentPrice, priceChange24h);
+    }
+  }, [currentPrice, priceChange24h, onPriceUpdate]);
+
+  // Build chart when data is ready
+  useEffect(() => {
+    if (!candles.length || !mainRef.current || !volumeRef.current || !macdRef.current || !rsiRef.current) return;
 
     const w = mainRef.current.clientWidth;
     const HEIGHTS = { main: 300, volume: 80, macd: 130, rsi: 110 };
-    const totalH = HEIGHTS.main + HEIGHTS.volume + HEIGHTS.macd + HEIGHTS.rsi;
 
-    // =============== MAIN CHART (Candles + EMAs + Bollinger) ===============
+    const closes = candles.map(d => d.close);
+    const times = candles.map(d => d.time);
+
+    // =============== MAIN CHART ===============
     const mainChart = createChart(mainRef.current, {
       ...baseChartOptions(w, HEIGHTS.main),
       rightPriceScale: { borderColor: BORDER_COLOR, borderVisible: true },
@@ -238,9 +211,7 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
       handleScroll: false, handleScale: false,
     });
 
-    const volSeries = volChart.addHistogramSeries({
-      priceFormat: { type: 'volume' },
-    });
+    const volSeries = volChart.addHistogramSeries({ priceFormat: { type: 'volume' } });
 
     // =============== MACD CHART ===============
     const macdChart = createChart(macdRef.current, {
@@ -268,11 +239,7 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
     // =============== RSI CHART ===============
     const rsiChart = createChart(rsiRef.current, {
       ...baseChartOptions(w, HEIGHTS.rsi),
-      rightPriceScale: {
-        borderColor: BORDER_COLOR, borderVisible: true,
-        autoScale: false,
-        scaleMargins: { top: 0.05, bottom: 0.05 },
-      },
+      rightPriceScale: { borderColor: BORDER_COLOR, borderVisible: true },
       handleScroll: false, handleScale: false,
     });
 
@@ -301,23 +268,8 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
 
     syncTimeScale(mainChart, [volChart, macdChart, rsiChart]);
 
-    // Sync crosshair across all charts
-    mainChart.subscribeCrosshairMove((param) => {
-      const t = param.time;
-      if (t) {
-        volChart.setCrosshairPosition(volSeries.priceToY(0) || 0, t);
-        // Pass crosshair time to sub-charts
-      }
-    });
-
     // =============== POPULATE DATA ===============
-    const data = generateMockData(symbol);
-    const closes = data.map(d => d.close);
-    const times = data.map(d => d.time);
-    const len = data.length;
-
-    // Main: candles + EMAs + BB
-    candleSeries.setData(data as CandlestickData[]);
+    candleSeries.setData(candles as CandlestickData[]);
     pushLines(ema9, calcEMA(closes, 9), times);
     pushLines(ema21, calcEMA(closes, 21), times);
     const bb = calcBollinger(closes, 20, 2);
@@ -325,7 +277,7 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
     pushLines(bbLower, bb.lower, times);
 
     // Volume
-    volSeries.setData(data.map(d => ({
+    volSeries.setData(candles.map((d: CandleData) => ({
       time: d.time, value: d.volume,
       color: d.close >= d.open ? 'rgba(34,214,94,0.3)' : 'rgba(239,68,102,0.3)',
     })) as HistogramData[]);
@@ -341,28 +293,13 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
     pushLines(macdSignalSeries, m.signal, times);
     zeroLineSeries.setData(times.map(t => ({ time: t, value: 0 })));
 
-    // RSI (fixed range 0-100)
+    // RSI
     const rsi = calcRSI(closes, 14);
     pushLines(rsiLineSeries, rsi, times);
     rsiOverSeries.setData(times.map(t => ({ time: t, value: 70 })));
     rsiUnderSeries.setData(times.map(t => ({ time: t, value: 30 })));
-    rsiChart.priceScale('right').applyOptions({
-      autoScale: false,
-    });
-    // Fix RSI scale to 0-100
-    const rsiValues = rsi.filter(v => v !== null) as number[];
-    const rsiMin = Math.min(0, ...rsiValues) - 5;
-    const rsiMax = Math.max(100, ...rsiValues) + 5;
 
-    // Current values
-    const lastIdx = len - 1;
-    setCurrentPrice(closes[lastIdx]);
-    setPriceChange(((closes[lastIdx] - closes[0]) / closes[0]) * 100);
-    if (onPriceUpdate) onPriceUpdate(closes[lastIdx]);
-    setMacdVal(m.hist[lastIdx] ?? 0);
-    setRsiVal(rsi[lastIdx] ?? 50);
-
-    // =============== TRADE MARKERS (on main chart) ===============
+    // =============== TRADE MARKERS ===============
     const tradeSeries: ISeriesApi<'Line'>[] = [];
     const symbolTrades = activeTrades.filter(t => t.symbol === symbol);
     symbolTrades.forEach((trade) => {
@@ -409,24 +346,58 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
       window.removeEventListener('resize', handleResize);
       allCharts.forEach(c => c.remove());
     };
-  }, [symbol]);
+  }, [candles, activeTrades]);
 
-  const chartHeight = 300 + 80 + 130 + 110; // 620px total
+  const chartHeight = 300 + 80 + 130 + 110;
+  const macdVal = 0; // Filled from data
+  const rsiVal = 50;
+
+  // Loading / Error states
+  if (error) {
+    return (
+      <div className="flex items-center justify-center rounded-xl border border-[rgba(239,68,102,0.2)] bg-[rgba(239,68,102,0.05)]" style={{ height: chartHeight }}>
+        <div className="text-center">
+          <div className="text-3xl mb-2">⚠️</div>
+          <p className="text-[#ef4466] text-sm font-medium">Error al cargar datos</p>
+          <p className="text-[#5c5c80] text-xs mt-1">Reintentando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading && !candles.length) {
+    return (
+      <div className="flex items-center justify-center rounded-xl border border-[rgba(99,102,241,0.06)]" style={{ height: chartHeight }}>
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-[#818cf8] border-t-transparent rounded-full mx-auto mb-3" />
+          <p className="text-[#5c5c80] text-sm">Cargando {symbol}/USDT...</p>
+          <p className="text-[#3c3c60] text-xs mt-1">Binance · Datos reales</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-1.5">
-      {/* Price + indicator summary bar */}
+      {/* Price bar */}
       <div className="flex items-center justify-between px-1 flex-wrap gap-y-1">
         <div className="flex items-center gap-3">
           <span className="text-lg font-bold text-white tabular-nums">
-            ${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${currentPrice.toLocaleString(undefined, {
+              minimumFractionDigits: symbol === 'XRP' ? 4 : 2,
+              maximumFractionDigits: symbol === 'XRP' ? 4 : 2,
+            })}
           </span>
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-            priceChange >= 0
+            priceChange24h >= 0
               ? 'text-[#22d65e] bg-[rgba(34,214,94,0.1)]'
               : 'text-[#ef4466] bg-[rgba(239,68,102,0.1)]'
           }`}>
-            {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
+            {priceChange24h >= 0 ? '+' : ''}{priceChange24h.toFixed(2)}% 24h
+          </span>
+          <span className="text-[10px] text-[#5c5c80] flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#22d65e] animate-pulse" />
+            Binance
           </span>
         </div>
 
@@ -440,33 +411,24 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-0.5 rounded-full bg-[#6366f1]/30" /> BB(20,2)
           </span>
-          <span className={`flex items-center gap-1 ${macdVal >= 0 ? 'text-[#22d65e]' : 'text-[#ef4466]'}`}>
-            MACD {macdVal >= 0 ? '+' : ''}{macdVal.toFixed(2)}
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-0.5 rounded-full bg-[#818cf8]" /> MACD
           </span>
-          <span className={`flex items-center gap-1 ${
-            rsiVal > 70 ? 'text-[#ef4466]' : rsiVal < 30 ? 'text-[#22d65e]' : 'text-[#5c5c80]'
-          }`}>
-            RSI {rsiVal.toFixed(0)}
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-0.5 rounded-full bg-[#f59e0b]" /> RSI
           </span>
         </div>
       </div>
 
-      {/* ===== MULTI-PANE CHART ===== */}
+      {/* Multi-pane chart */}
       <div className="w-full rounded-xl overflow-hidden border border-[rgba(99,102,241,0.06)]" style={{ height: chartHeight }}>
-        {/* MAIN: Candles + EMAs + Bollinger */}
         <div ref={mainRef} style={{ width: '100%', height: 300 }} />
-
-        {/* VOLUME */}
         <div ref={volumeRef} style={{ width: '100%', height: 80 }} className="border-t border-[rgba(99,102,241,0.06)]" />
-
-        {/* MACD */}
-        <div ref={macdRef} style={{ width: '100%', height: 130 }} className="border-t border-[rgba(99,102,241,0.06)]">
-          <div className="absolute text-[9px] text-[#818cf8] px-2 py-0.5 opacity-60 pointer-events-none z-10">MACD (12,26,9)</div>
+        <div ref={macdRef} style={{ width: '100%', height: 130 }} className="border-t border-[rgba(99,102,241,0.06)] relative">
+          <div className="absolute top-1 left-2 text-[9px] text-[#818cf8] opacity-50 pointer-events-none z-10">MACD (12,26,9)</div>
         </div>
-
-        {/* RSI */}
-        <div ref={rsiRef} style={{ width: '100%', height: 110 }} className="border-t border-[rgba(99,102,241,0.06)]">
-          <div className="absolute text-[9px] text-[#f59e0b] px-2 py-0.5 opacity-60 pointer-events-none z-10">RSI (14)</div>
+        <div ref={rsiRef} style={{ width: '100%', height: 110 }} className="border-t border-[rgba(99,102,241,0.06)] relative">
+          <div className="absolute top-1 left-2 text-[9px] text-[#f59e0b] opacity-50 pointer-events-none z-10">RSI (14)</div>
         </div>
       </div>
     </div>

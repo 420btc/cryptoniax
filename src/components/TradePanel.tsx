@@ -44,7 +44,7 @@ export default function TradePanel() {
   const [slPrice, setSlPrice] = useState('');
   const [exchange, setExchange] = useState<ExchangeType>('bingx');
 
-  const handlePriceUpdate = (price: number) => {
+  const handlePriceUpdate = (price: number, _change24h: number) => {
     setCurrentPrice(price);
     checkTradeLimits(selectedSymbol, price);
   };
