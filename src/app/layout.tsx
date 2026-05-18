@@ -94,15 +94,14 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If session exists and on landing, just render children without Navbar wrapper
+  // SIEMPRE que estemos en la landing, NO aplicamos el layout de la app (navbar global, footer global)
+  // Dejamos que page.tsx se encargue de dibujar su propia pantalla completa, ya sea con sesión o sin sesión
   if (pathname === '/') {
     return <>{children}</>;
   }
 
   // Si no hay sesión (y no es ruta protegida, porque eso se filtró arriba)
-  // OJO: Si NO hay sesión y estás en landing, esto ya no se ejecuta porque devolvimos <>{children}</> arriba,
-  // pero lo movemos por si acaso.
-  if (!session) {
+  if (!session && !isGuest) {
     if (PROTECTED_ROUTES.includes(pathname)) {
       return (
         <div className="min-h-screen bg-[#0a0a1a] flex items-center justify-center">
@@ -110,8 +109,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
-    // Si no es protegida y no hay sesión (ej: landing), renderizamos normal sin layout wrapper si es /
-    if (pathname === '/') return <>{children}</>;
   }
 
   return (
