@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import { useAuthStore } from '@/hooks/useAuth';
 import BattleArena from '@/components/BattleArena';
-import BattleAIChat from '@/components/BattleAIChat';
+import BattleTavernChat from '@/components/BattleTavernChat';
 import { Swords, Shield, Zap, TrendingUp, Users, MessageCircle } from 'lucide-react';
 
 export default function BattlesPage() {
@@ -136,7 +136,7 @@ export default function BattlesPage() {
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition ${
             activeTab === 'chat' ? 'glass text-[#818cf8]' : 'text-[#5c5c80] hover:text-white'
           }`}>
-          <MessageCircle size={16} /> Chat IA
+          <MessageCircle size={16} /> Taberna (20 traders)
         </button>
       </div>
 
@@ -154,8 +154,8 @@ export default function BattlesPage() {
       ) : (
         <motion.div key="chat" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="glass-card !p-0 overflow-hidden">
-            <div className="h-[500px]">
-              <BattleAIChat />
+            <div className="h-[550px]">
+              <BattleTavernChat />
             </div>
           </div>
         </motion.div>
