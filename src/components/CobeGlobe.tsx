@@ -23,7 +23,7 @@ export default function CobeGlobe() {
     if (!canvasRef.current) return;
 
     // Define some game markers around the globe
-    const markers = [
+    const markers: { location: [number, number]; size: number }[] = [
       // Player marker (based on house level)
       { location: [40.7128, -74.0060], size: 0.1 + ((house?.level || 1) * 0.02) },
       // NPCs / Other traders
