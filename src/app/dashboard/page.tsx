@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import TradePanel from '@/components/TradePanel';
 import FaucetButton from '@/components/FaucetButton';
 import DailyQuests from '@/components/DailyQuests';
+import AchievementsStrip from '@/components/AchievementsStrip';
 
 export default function DashboardPage() {
   return (
@@ -23,6 +24,15 @@ export default function DashboardPage() {
         <p className="text-[#8888b0] text-sm mt-1">
           Charts en tiempo real con EMA, MACD, RSI, Bollinger. Datos reales de Binance.
         </p>
+      </motion.div>
+
+      {/* Logros */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+      >
+        <AchievementsStrip />
       </motion.div>
 
       {/* Earning Zone: Faucet + Quests */}

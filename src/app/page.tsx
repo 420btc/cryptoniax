@@ -79,6 +79,15 @@ export default function LandingPage() {
 
         {/* Hero Section */}
         <section ref={heroRef} className="relative min-h-screen flex items-center justify-center px-6 pt-20">
+          {/* Cover art background */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="/sprites/v2/cover_epic.png"
+              alt="HodlVille"
+              className="w-full h-full object-cover opacity-[0.12]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a]/80 via-transparent to-[#0a0a1a]" />
+          </div>
           <div className="text-center max-w-5xl mx-auto z-10">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass text-xs font-medium text-[#818cf8] mb-8 animate-fade-in">

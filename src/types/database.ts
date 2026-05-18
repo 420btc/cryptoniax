@@ -11,6 +11,8 @@ export interface Database {
           coins: number;
           xp: number;
           level: number;
+          avatar_sprite: string | null;
+          selected_pet: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -56,6 +58,8 @@ export interface Database {
           user_id: string;
           style: string;
           level: number;
+          decorations: string[] | null;
+          vault_level: number;
           updated_at: string;
         };
         Insert: Partial<Database['public']['Tables']['houses']['Row']>;
@@ -73,10 +77,45 @@ export interface Database {
           def: number;
           level: number;
           xp: number;
+          sprite_path: string | null;
           created_at: string;
         };
         Insert: Partial<Database['public']['Tables']['characters']['Row']>;
         Update: Partial<Database['public']['Tables']['characters']['Row']>;
+      };
+      // ── NUEVO: Logros ──
+      achievements: {
+        Row: {
+          id: string;
+          user_id: string;
+          achievement_key: string;
+          name: string;
+          description: string;
+          icon: string;
+          progress: number;
+          max_progress: number;
+          unlocked: boolean;
+          unlocked_at: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['achievements']['Row']>;
+        Update: Partial<Database['public']['Tables']['achievements']['Row']>;
+      };
+      // ── NUEVO: Equipamiento ──
+      equipment: {
+        Row: {
+          id: string;
+          user_id: string;
+          slot: string;
+          item_key: string;
+          item_name: string;
+          sprite_path: string;
+          level: number;
+          equipped: boolean;
+          created_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['equipment']['Row']>;
+        Update: Partial<Database['public']['Tables']['equipment']['Row']>;
       };
     };
   };

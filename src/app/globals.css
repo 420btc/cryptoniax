@@ -357,4 +357,18 @@ canvas { image-rendering: auto; }
     background-size: cover;
     background-position: center;
   }
+
+  /* Housing interior */
+  .bg-housing-interior {
+    background-image: url('/sprites/v2/bg_housing_interior.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* World night */
+  .bg-world-night {
+    background-image: url('/sprites/v2/bg_world_night.png');
+    background-size: cover;
+    background-position: center;
+  }
 }

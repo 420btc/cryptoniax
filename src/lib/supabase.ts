@@ -197,6 +197,83 @@ export async function fetchCharacters(userId: string) {
   return data || [];
 }
 
+// ===== HOUSE DECORATIONS =====
+export async function addDecoration(userId: string, decorationId: string) {
+  const { data: house } = await supabase
+    .from('houses')
+    .select('decorations')
+    .eq('user_id', userId)
+    .single();
+  
+  const current = house?.decorations || [];
+  if (current.includes(decorationId)) return house;
+  
+  const { error } = await supabase
+    .from('houses')
+    .update({ decorations: [...current, decorationId] })
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+// ===== ACHIEVEMENTS =====
+export async function fetchAchievements(userId: string) {
+  const { data, error } = await supabase
+    .from('achievements')
+    .select('*')
+    .eq('user_id', userId);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function upsertAchievement(achievement: {
+  user_id: string;
+  achievement_key: string;
+  name: string;
+  description: string;
+  icon: string;
+  progress: number;
+  max_progress: number;
+  unlocked: boolean;
+}) {
+  const { error } = await supabase
+    .from('achievements')
+    .upsert({
+      ...achievement,
+      unlocked_at: achievement.unlocked ? new Date().toISOString() : null,
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,achievement_key' });
+  if (error) throw error;
+}
+
+// ===== EQUIPMENT =====
+export async function fetchEquipment(userId: string) {
+  const { data, error } = await supabase
+    .from('equipment')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('equipped', true);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function upsertEquipment(item: {
+  user_id: string;
+  slot: string;
+  item_key: string;
+  item_name: string;
+  sprite_path: string;
+  level: number;
+  equipped: boolean;
+}) {
+  const { error } = await supabase
+    .from('equipment')
+    .upsert({
+      ...item,
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,slot' });
+  if (error) throw error;
+}
+
 // ===== REALTIME SUBSCRIPTIONS =====
 export function subscribeToTrades(userId: string, callback: (payload: any) => void) {
   return supabase
