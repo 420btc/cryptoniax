@@ -71,7 +71,7 @@ export default function HousingPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6"
+      className="space-y-6 bg-housing-cabin rounded-xl p-4 sm:p-6"
     >
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>

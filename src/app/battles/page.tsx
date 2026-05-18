@@ -42,16 +42,25 @@ export default function BattlesPage() {
     return { battlesToday, battleWinRate, streak, xpToday };
   }, [closedTrades]);
 
+  const playerExchange = (activeTrades[0]?.exchange || 'bingx') as string;
+  const playerLevel = Math.min(5, Math.max(1, Math.ceil(stats.battlesToday / 2) || 1));
+  const playerSpritePath = `/sprites/v2/hero_${playerExchange}_warrior_lv${playerLevel}.png`;
+
+  const opponentExchange = 'hyperliquid';
+  const opponentLevel = 5;
+  const opponentSpritePath = `/sprites/v2/hero_${opponentExchange}_warrior_lv${opponentLevel}.png`;
+
   const opponent = {
     name: 'CryptoKing',
     exchange: 'Hyperliquid',
     type: 'warrior' as const,
-    level: 5,
+    level: opponentLevel,
     hp: 85,
     maxHp: 100,
     atk: 18,
     def: 8,
     color: '#00e6ff',
+    spritePath: opponentSpritePath,
     spriteEmoji: '🦹',
   };
 
@@ -59,12 +68,13 @@ export default function BattlesPage() {
     name: profile?.email?.split('@')[0] || 'Trader',
     exchange: 'BingX',
     type: 'warrior' as const,
-    level: 1,
+    level: playerLevel,
     hp: 92,
     maxHp: 100,
     atk: 12,
     def: 5,
     color: '#22d65e',
+    spritePath: playerSpritePath,
     spriteEmoji: '⚔️',
   };
 
@@ -142,7 +152,7 @@ export default function BattlesPage() {
 
       {/* Arena or Chat */}
       {activeTab === 'arena' ? (
-        <motion.div key="arena" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div key="arena" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-battle-arena rounded-xl p-4">
           <BattleArena
             player={player}
             opponent={opponent}

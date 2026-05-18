@@ -13,6 +13,9 @@ interface Fighter {
   atk: number;
   def: number;
   color: string;
+  /** Ruta del sprite v2 (e.g. '/sprites/v2/hero_bingx_warrior_lv3.png') */
+  spritePath: string;
+  /** Fallback emoji si la imagen tarda/falla */
   spriteEmoji: string;
 }
 
@@ -49,13 +52,26 @@ export default function BattleArena({ player, opponent, log, playerTurn, onAttac
         </div>
 
         {/* ── LEFT: Player ── */}
-        <div className="absolute left-8 md:left-16 bottom-20 flex flex-col items-center">
+        <div className="absolute left-6 lg:left-16 bottom-20 flex flex-col items-center">
           {/* Sprite */}
           <motion.div
-            animate={playerTurn ? { x: [0, 20, 0], transition: { duration: 0.4, repeat: Infinity, repeatDelay: 2 } } : {}}
-            className="text-7xl mb-2 filter drop-shadow-lg"
+            animate={playerTurn ? { x: [0, 20, 0], transition: { duration: 0.4, repeat: Infinity, repeatDelay: 1.8 } } : {}}
+            className="relative mb-2"
           >
-            {player.spriteEmoji}
+            <img
+              src={player.spritePath}
+              alt={player.name}
+              className="w-20 h-20 sm:w-28 sm:h-28 object-contain drop-shadow-[0_0_25px_rgba(99,102,241,0.3)]"
+              onError={(e) => {
+                // Replace broken sprite with emoji fallback
+                const el = e.target as HTMLImageElement;
+                el.style.display = 'none';
+                (el.nextSibling as HTMLElement).style.display = 'block';
+              }}
+            />
+            <div className="hidden text-6xl absolute inset-0 flex items-center justify-center drop-shadow-lg" style={{ display: 'none' }}>
+              {player.spriteEmoji}
+            </div>
           </motion.div>
 
           {/* HP bar */}
@@ -88,13 +104,24 @@ export default function BattleArena({ player, opponent, log, playerTurn, onAttac
         </div>
 
         {/* ── RIGHT: Opponent ── */}
-        <div className="absolute right-8 md:right-16 bottom-20 flex flex-col items-center">
+        <div className="absolute right-6 lg:right-16 bottom-20 flex flex-col items-center">
           <motion.div
-            animate={!playerTurn ? { x: [0, -20, 0], transition: { duration: 0.4, repeat: Infinity, repeatDelay: 2 } } : {}}
-            className="text-7xl mb-2 filter drop-shadow-lg"
-            style={{ transform: 'scaleX(-1)' }}
+            animate={!playerTurn ? { x: [0, -20, 0], transition: { duration: 0.4, repeat: Infinity, repeatDelay: 1.8 } } : {}}
+            className="relative mb-2"
           >
-            {opponent.spriteEmoji}
+            <img
+              src={opponent.spritePath}
+              alt={opponent.name}
+              className="w-20 h-20 sm:w-28 sm:h-28 object-contain drop-shadow-[0_0_25px_rgba(239,68,102,0.3)] scale-x-[-1]"
+              onError={(e) => {
+                const el = e.target as HTMLImageElement;
+                el.style.display = 'none';
+                (el.nextSibling as HTMLElement).style.display = 'block';
+              }}
+            />
+            <div className="hidden text-6xl absolute inset-0 flex items-center justify-center drop-shadow-lg scale-x-[-1]" style={{ display: 'none' }}>
+              {opponent.spriteEmoji}
+            </div>
           </motion.div>
 
           <div className="w-32 h-2 rounded-full bg-[rgba(239,68,102,0.2)] overflow-hidden mb-1">
