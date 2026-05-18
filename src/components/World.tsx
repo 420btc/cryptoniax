@@ -6,18 +6,23 @@ import { usePortfolioStore } from '@/hooks/usePortfolio';
 import { EXCHANGE_THEMES } from '@/types';
 import * as PIXI from 'pixi.js';
 
-// Map house style to sprite file
-const HOUSE_SPRITES: Record<string, string> = {
-  tent: '/sprites/house_tent.png',
-  wood_house: '/sprites/house_wood.png',
-  stone_house: '/sprites/house_stone.png',
-  mansion: '/sprites/house_mansion.png',
-  castle: '/sprites/house_castle.png',
-};
+// ── V2 Sprite Paths (gpt-image-2, 1024px, multi-level) ──
+const SPRITES_V2 = '/sprites/v2';
 
-// Map exchange + type to character sprite
-function charSprite(exchange: string, type: string): string {
-  return `/sprites/${exchange}_${type}.png`;
+function houseSpritePath(style: string, level: number): string {
+  return `${SPRITES_V2}/house_${style}_lv${level}.png`;
+}
+
+function charSpritePath(exchange: string, type: string, level: number): string {
+  return `${SPRITES_V2}/hero_${exchange}_${type}_lv${level}.png`;
+}
+
+function bgPath(variant: number): string {
+  return `${SPRITES_V2}/bg_${variant}.png`;
+}
+
+function bossPath(exchange: string): string {
+  return `${SPRITES_V2}/boss_${exchange}.png`;
 }
 
 export default function WorldCanvas() {
@@ -30,12 +35,22 @@ export default function WorldCanvas() {
   const houseSpriteRef = useRef<PIXI.Sprite | null>(null);
   const charSpritesRef = useRef<PIXI.Sprite[]>([]);
 
+  // Character level from trade count/P&L
+  const getCharLevel = (trade: any): number => {
+    const wins = closedTrades.filter(t => t.symbol === trade.symbol && (t.pnl || 0) > 0).length;
+    if (wins >= 20) return 5;
+    if (wins >= 12) return 4;
+    if (wins >= 6) return 3;
+    if (wins >= 2) return 2;
+    return 1;
+  };
+
   useEffect(() => {
     if (!canvasRef.current || appRef.current) return;
 
     const app = new PIXI.Application({
       width: canvasRef.current.clientWidth,
-      height: 600,
+      height: 700, // Bigger canvas for larger sprites
       backgroundColor: 0x05050f,
       antialias: false,
       resolution: window.devicePixelRatio || 1,
@@ -46,24 +61,34 @@ export default function WorldCanvas() {
     appRef.current = app;
     setWorldReady(true);
 
-    // Load background
+    // Load background (try v2 first, fallback to old)
     const loadBg = async () => {
-      const texture = await PIXI.Assets.load('/sprites/world_background.png');
-      const bg = new PIXI.Sprite(texture);
-      bg.width = app.screen.width;
-      bg.height = 600;
-      bg.alpha = 0.85;
-      app.stage.addChildAt(bg, 0);
-      bgRef.current = bg;
+      try {
+        const texture = await PIXI.Assets.load(bgPath(1));
+        const bg = new PIXI.Sprite(texture);
+        bg.width = app.screen.width;
+        bg.height = 700;
+        bg.alpha = 0.85;
+        app.stage.addChildAt(bg, 0);
+        bgRef.current = bg;
+      } catch {
+        try {
+          const texture = await PIXI.Assets.load('/sprites/world_background.png');
+          const bg = new PIXI.Sprite(texture);
+          bg.width = app.screen.width;
+          bg.height = 700;
+          bg.alpha = 0.85;
+          app.stage.addChildAt(bg, 0);
+          bgRef.current = bg;
+        } catch {}
+      }
     };
     loadBg();
 
     const handleResize = () => {
       if (canvasRef.current) {
-        app.renderer.resize(canvasRef.current.clientWidth, 600);
-        if (bgRef.current) {
-          bgRef.current.width = app.screen.width;
-        }
+        app.renderer.resize(canvasRef.current.clientWidth, 700);
+        if (bgRef.current) bgRef.current.width = app.screen.width;
       }
     };
     window.addEventListener('resize', handleResize);
@@ -75,18 +100,19 @@ export default function WorldCanvas() {
     };
   }, []);
 
-  // Draw house sprite
+  // Draw house
   useEffect(() => {
     if (!appRef.current || !house || !worldReady) return;
     const app = appRef.current;
 
-    // Remove old
     if (houseSpriteRef.current) {
       app.stage.removeChild(houseSpriteRef.current);
       houseSpriteRef.current = null;
     }
 
-    const spriteFile = HOUSE_SPRITES[house.style] || HOUSE_SPRITES.tent;
+    const hLevel = Math.min(5, Math.ceil(house.level / 3)); // Map house level 1-15+ → sprite level 1-5
+    const spriteFile = houseSpritePath(house.style, hLevel);
+
     const loadHouse = async () => {
       try {
         const texture = await PIXI.Assets.load(spriteFile);
@@ -94,11 +120,10 @@ export default function WorldCanvas() {
         sprite.anchor.set(0.5, 0.8);
         sprite.x = app.screen.width / 2;
         sprite.y = app.screen.height * 0.72;
-        sprite.scale.set(2);
+        sprite.scale.set(0.3); // Scale 1024px → ~307px display
         app.stage.addChild(sprite);
         houseSpriteRef.current = sprite;
 
-        // Level label
         const label = new PIXI.Text(`Lv.${house.level}`, {
           fontFamily: 'Inter, sans-serif',
           fontSize: 12,
@@ -110,46 +135,42 @@ export default function WorldCanvas() {
         });
         label.anchor.set(0.5);
         label.x = app.screen.width / 2;
-        label.y = app.screen.height * 0.72 + sprite.height * 1.5;
+        label.y = app.screen.height * 0.72 + 100;
         label.name = 'house_label';
         app.stage.addChild(label);
-      } catch (e) {
-        console.warn('Failed to load house sprite:', e);
-      }
+      } catch {}
     };
     loadHouse();
   }, [house, worldReady]);
 
-  // Draw character sprites
+  // Draw characters
   useEffect(() => {
     if (!appRef.current || !worldReady) return;
     const app = appRef.current;
 
-    // Remove old
     charSpritesRef.current.forEach(s => app.stage.removeChild(s));
     charSpritesRef.current = [];
-    // Also remove old labels
     const oldLabels = app.stage.children.filter(c => c.name === 'char_label');
     oldLabels.forEach(c => app.stage.removeChild(c));
 
     activeTrades.forEach(async (trade: any, i: number) => {
       const type = trade.type === 'futures' ? 'warrior' : 'merchant';
-      const spriteFile = charSprite(trade.exchange, type);
+      const charLv = getCharLevel(trade);
+      const spriteFile = charSpritePath(trade.exchange, type, charLv);
       const theme = EXCHANGE_THEMES[(trade.exchange as keyof typeof EXCHANGE_THEMES)] || EXCHANGE_THEMES.other;
 
       try {
         const texture = await PIXI.Assets.load(spriteFile);
         const sprite = new PIXI.Sprite(texture);
         sprite.anchor.set(0.5, 0.8);
-        sprite.x = 100 + i * 100;
-        sprite.y = app.screen.height - 100;
-        sprite.scale.set(2);
+        sprite.x = 100 + i * 120;
+        sprite.y = app.screen.height - 120;
+        sprite.scale.set(0.25); // 1024px → ~256px display
         app.stage.addChild(sprite);
         charSpritesRef.current.push(sprite);
 
-        // Label
         const label = new PIXI.Text(
-          `${trade.symbol} ${trade.side === 'long' ? '▲' : '▼'} ${trade.type === 'futures' ? trade.leverage + 'x' : 'Spot'}`,
+          `${trade.symbol} ${trade.side === 'long' ? '▲' : '▼'} Lv${charLv}`,
           {
             fontFamily: 'Inter, sans-serif',
             fontSize: 9,
@@ -161,17 +182,17 @@ export default function WorldCanvas() {
         );
         label.anchor.set(0.5, 0);
         label.x = sprite.x;
-        label.y = sprite.y + 40;
+        label.y = sprite.y + 50;
         label.name = 'char_label';
         app.stage.addChild(label);
-      } catch (e) {
-        // Fallback: draw simple shape
+      } catch {
+        // Fallback
         const g = new PIXI.Graphics();
         g.beginFill(parseInt(theme.color.slice(1), 16));
-        g.drawRoundedRect(0, 0, 24, 28, 3);
+        g.drawRoundedRect(0, 0, 32, 40, 4);
         g.endFill();
-        g.x = 88 + i * 100;
-        g.y = app.screen.height - 116;
+        g.x = 84 + i * 120;
+        g.y = app.screen.height - 130;
         app.stage.addChild(g);
         charSpritesRef.current.push(g as any);
       }
@@ -189,10 +210,9 @@ export default function WorldCanvas() {
         houseSpriteRef.current.y = app.screen.height * 0.72 + Math.sin(elapsed) * 4;
         houseSpriteRef.current.rotation = Math.sin(elapsed * 0.5) * 0.02;
       }
-      // Frames for walking animation
       charSpritesRef.current.forEach((s, i) => {
         if (s instanceof PIXI.Sprite && s.texture) {
-          s.y = app.screen.height - 100 + Math.sin(elapsed + i) * 3;
+          s.y = app.screen.height - 120 + Math.sin(elapsed + i) * 3;
         }
       });
     };
@@ -210,7 +230,7 @@ export default function WorldCanvas() {
           <span>💰 ${coins.toFixed(0)}</span>
         </div>
       </div>
-      <div ref={canvasRef} className="w-full" style={{ height: 600 }} />
+      <div ref={canvasRef} className="w-full" style={{ height: 700 }} />
     </div>
   );
 }
