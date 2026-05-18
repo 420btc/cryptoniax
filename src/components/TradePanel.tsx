@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/hooks/useAuth';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import Chart from './Chart';
@@ -9,6 +10,12 @@ import {
   Activity, TrendingUp, BarChart3, Wallet, Clock, Zap, ArrowUpRight, ArrowDownRight,
   CandlestickChart, Gauge, Target, ListOrdered, Plus, X
 } from 'lucide-react';
+
+// Animation variants
+const fadeIn = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10, scale: 0.95 } };
+const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
+const cardHover = { whileHover: { y: -2, transition: { type: 'spring', stiffness: 400, damping: 25 } } };
+const pulse = { animate: { scale: [1, 1.02, 1], transition: { duration: 2, repeat: Infinity, ease: 'easeInOut' } } };
 
 export default function TradePanel() {
   const { profile } = useAuthStore();
@@ -93,22 +100,30 @@ export default function TradePanel() {
         </div>
 
         {/* Stats grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <motion.div variants={stagger} initial="initial" animate="animate" className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { icon: <Wallet size={14} />, label: 'Balance', value: `$${coins.toFixed(2)}`, color: '#818cf8' },
             { icon: <Gauge size={14} />, label: 'Win Rate', value: `${winRate}%`, color: winRate >= 50 ? '#22d65e' : '#ef4466' },
             { icon: <Target size={14} />, label: 'P&L Total', value: `${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}`, color: totalPnl >= 0 ? '#22d65e' : '#ef4466' },
             { icon: <Activity size={14} />, label: 'Mejor Trade', value: bestTrade > 0 ? `+$${bestTrade.toFixed(2)}` : '—', color: '#22d65e' },
           ].map((s, i) => (
-            <div key={i} className="glass-card !p-3.5">
+            <motion.div key={i} variants={fadeIn} whileHover={{ y: -2, transition: { type: 'spring', stiffness: 500 } }} className="glass-card !p-3.5">
               <div className="flex items-center gap-1.5 mb-1">
                 <span style={{ color: s.color }}>{s.icon}</span>
                 <span className="text-[10px] text-[#5c5c80] font-medium">{s.label}</span>
               </div>
-              <div className="text-lg font-bold text-white tabular-nums">{s.value}</div>
-            </div>
+              <motion.div
+                key={`${s.label}-${s.value}`}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                className="text-lg font-bold text-white tabular-nums"
+              >
+                {s.value}
+              </motion.div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Active Trades */}
         <div className="glass-card !p-4">
@@ -122,18 +137,28 @@ export default function TradePanel() {
             </span>
           </div>
           {activeTrades.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-3xl mb-2 opacity-30">📭</div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
+              <motion.div animate={{ rotate: [0, 10, -10, 0], transition: { duration: 2, repeat: Infinity } }} className="text-3xl mb-2 opacity-30">📭</motion.div>
               <p className="text-[#5c5c80] text-sm">No hay trades abiertos</p>
               <p className="text-[#3c3c60] text-xs mt-1">Abre un trade desde el panel derecho</p>
-            </div>
+            </motion.div>
           ) : (
-            <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
-              {activeTrades.map((t) => {
-                const theme = EXCHANGE_THEMES[t.exchange];
-                const isProfit = (t.pnl || 0) >= 0;
-                return (
-                  <div key={t.id} className="glass !rounded-lg p-3 flex items-center justify-between group hover:bg-[rgba(255,255,255,0.02)] transition">
+            <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+              <AnimatePresence>
+                {activeTrades.map((t) => {
+                  const theme = EXCHANGE_THEMES[t.exchange];
+                  const isProfit = (t.pnl || 0) >= 0;
+                  return (
+                    <motion.div
+                      key={t.id}
+                      variants={fadeIn}
+                      layout
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                      whileHover={{ scale: 1.01, borderColor: 'rgba(99,102,241,0.2)' }}
+                      className="glass !rounded-lg p-3 flex items-center justify-between transition-colors group"
+                    >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
                         style={{ background: `${theme.color}15`, color: theme.color }}>
@@ -160,10 +185,11 @@ export default function TradePanel() {
                         {isProfit ? '+' : ''}{t.pnl?.toFixed(2) ?? '0.00'}$
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
+              </AnimatePresence>
+            </motion.div>
           )}
         </div>
 

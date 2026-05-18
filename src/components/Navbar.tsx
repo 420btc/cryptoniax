@@ -1,12 +1,13 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import { BarChart3, Globe, LogOut, Wallet, TrendingUp, Menu, X } from 'lucide-react';
 import { signOut } from '@/lib/supabase';
-import { useState } from 'react';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -23,7 +24,12 @@ export default function Navbar() {
   const xpProgress = Math.min(100, (xp / levelXp) * 100);
 
   return (
-    <nav className="bg-[rgba(5,5,15,0.85)] backdrop-blur-2xl border-b border-[rgba(99,102,241,0.1)] sticky top-0 z-40">
+    <motion.nav
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.4, delay: 0.2 }}
+      className="bg-[rgba(5,5,15,0.85)] backdrop-blur-2xl border-b border-[rgba(99,102,241,0.1)] sticky top-0 z-40"
+    >
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
         {/* Left */}
         <div className="flex items-center gap-6">
@@ -135,6 +141,6 @@ export default function Navbar() {
           </div>
         </div>
       )}
-    </nav>
+    </motion.nav>
   );
 }
