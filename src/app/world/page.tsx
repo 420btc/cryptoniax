@@ -3,14 +3,14 @@
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
-import { Globe, MapPin, Users, TrendingUp } from 'lucide-react';
-import { useEffect } from 'react';
+import { Globe, MapPin, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import BackButton from '@/components/BackButton';
 
-const MapboxGlobe = dynamic(() => import('@/components/MapboxGlobe'), {
+const PixiWorld = dynamic(() => import('@/components/PixiWorld'), {
   ssr: false,
   loading: () => (
-    <div className="glass-card !p-16 text-center" style={{ height: 540 }}>
+    <div className="glass-card !p-16 text-center" style={{ height: 500 }}>
       <div className="text-4xl mb-4 animate-pulse">🌍</div>
       <div className="shimmer w-32 h-4 rounded mx-auto mb-2" />
       <div className="shimmer w-48 h-3 rounded mx-auto" />
@@ -22,25 +22,31 @@ const stagger = { animate: { transition: { staggerChildren: 0.1 } } };
 const cardAnim = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
 
 export default function WorldPage() {
-  const { activeTrades, closedTrades } = usePortfolioStore();
+  const { activeTrades, closedTrades, level, coins } = usePortfolioStore();
 
-  // Mark daily quest "visit_world"
+  // Mark daily quest
   useEffect(() => {
-    const key = 'hodlville_daily_quests';
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      const data = JSON.parse(saved);
-      if (!data.completed.includes('visit_world')) {
-        data.completed.push('visit_world');
-        localStorage.setItem(key, JSON.stringify(data));
+    try {
+      const key = 'hodlville_daily_quests';
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (!data.completed?.includes('visit_world')) {
+          data.completed = [...(data.completed || []), 'visit_world'];
+          localStorage.setItem(key, JSON.stringify(data));
+        }
       }
-    }
+    } catch {}
   }, []);
 
+  const winRate = closedTrades.length > 0
+    ? Math.round((closedTrades.filter(t => (t.pnl || 0) > 0).length / closedTrades.length) * 100)
+    : 0;
+
   const stats = [
-    { icon: <TrendingUp size={14} />, label: 'Trades Activos', value: activeTrades.length.toString(), color: '#22d65e' },
-    { icon: <Users size={14} />, label: 'Jugadores Online', value: '9', color: '#818cf8' },
-    { icon: <MapPin size={14} />, label: 'Ubicaciones', value: '10', color: '#f59e0b' },
+    { icon: <TrendingUp size={14} />, label: 'Nivel', value: level.toString(), color: '#818cf8' },
+    { icon: <MapPin size={14} />, label: 'Biomas', value: '6', color: '#22d65e' },
+    { icon: <Globe size={14} />, label: 'Online', value: '6', color: '#00e6ff' },
   ];
 
   return (
@@ -52,9 +58,9 @@ export default function WorldPage() {
     >
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <BackButton />
-        <h1 className="text-2xl md:text-3xl font-bold text-white mt-2">🌍 HodlVille World</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-white mt-2">🌍 Mapa de HodlVille</h1>
         <p className="text-[#8888b0] text-sm mt-1">
-          Mapa global con traders en tiempo real. Conecta, desafía, conquista.
+          Explora biomas, encuentra traders, conquista territorios.
         </p>
       </motion.div>
 
@@ -63,49 +69,73 @@ export default function WorldPage() {
         {stats.map((s, i) => (
           <motion.div key={i} variants={cardAnim} whileHover={{ y: -2 }} className="glass-card !p-3 text-center">
             <div className="flex justify-center mb-1" style={{ color: s.color }}>{s.icon}</div>
-            <div className="text-lg font-bold text-white">{s.value}</div>
+            <div className="text-lg font-bold text-white tabular-nums">{s.value}</div>
             <div className="text-[10px] text-[#5c5c80]">{s.label}</div>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* Mapbox Globe */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-        <MapboxGlobe />
+      {/* Interactive Pixi World */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <PixiWorld />
       </motion.div>
 
-      {/* Player list */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="glass-card !p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Users size={15} className="text-[#818cf8]" />
-          <span className="text-sm font-semibold text-white">Jugadores en el mundo</span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {[
-            { name: 'CryptoKing', lvl: 5, color: '#00e6ff', online: true },
-            { name: 'HodlQueen', lvl: 3, color: '#f7a600', online: true },
-            { name: 'SolanaWolf', lvl: 4, color: '#ff007a', online: true },
-            { name: 'EthSurfer', lvl: 2, color: '#00e6ff', online: true },
-            { name: 'TradeWizard', lvl: 7, color: '#f0b90b', online: true },
-            { name: 'CryptoNinja', lvl: 4, color: '#00e6ff', online: true },
-            { name: 'MoonBoy', lvl: 1, color: '#ff007a', online: true },
-            { name: 'BTCMaxi', lvl: 6, color: '#f0b90b', online: false },
-            { name: 'DiamondHands', lvl: 3, color: '#f7a600', online: false },
-          ].map((p, i) => (
-            <div key={i} className="flex items-center gap-2 glass !rounded-lg px-3 py-2">
-              <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${p.online ? 'bg-[#22d65e]' : ''}`} />
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${p.online ? 'bg-[#22d65e]' : 'bg-[#5c5c80]'}`} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-white truncate">{p.name}</div>
-                <div className="text-[10px] text-[#5c5c80]">Lv.{p.lvl}</div>
-              </div>
-              <button className="text-[10px] px-2 py-1 rounded-md glass text-[#818cf8] hover:text-white transition">
-                Retar
-              </button>
+      {/* Player activity */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-3"
+      >
+        <div className="glass-card !p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp size={14} className="text-[#f0b90b]" />
+            <span className="text-sm font-bold text-white">Tu actividad</span>
+          </div>
+          <div className="space-y-2 text-[11px] text-[#8888b0]">
+            <div className="flex justify-between">
+              <span>Trades totales</span>
+              <span className="text-white font-bold">{closedTrades.length + activeTrades.length}</span>
             </div>
-          ))}
+            <div className="flex justify-between">
+              <span>Win Rate</span>
+              <span className={winRate >= 50 ? 'text-[#22d65e] font-bold' : 'text-[#ef4466] font-bold'}>{winRate}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Balance</span>
+              <span className="text-white font-bold">${coins.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Activos ahora</span>
+              <span className="text-[#22d65e] font-bold">{activeTrades.length}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-card !p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Globe size={14} className="text-[#818cf8]" />
+            <span className="text-sm font-bold text-white">Biomas disponibles</span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+            {[
+              { name: 'Ciudad Central', icon: '🏰', color: '#6366f1' },
+              { name: 'Bosque Encantado', icon: '🌲', color: '#22d65e' },
+              { name: 'Montañas de Hielo', icon: '🏔️', color: '#00e6ff' },
+              { name: 'Desierto Ardiente', icon: '🏜️', color: '#ef4466' },
+              { name: 'Volcán', icon: '🌋', color: '#f59e0b' },
+              { name: 'Playa Dorada', icon: '🏖️', color: '#f0b90b' },
+            ].map((b, i) => (
+              <div key={i} className="flex items-center gap-1.5 glass !rounded-lg px-2 py-1.5">
+                <span>{b.icon}</span>
+                <span className="text-[#8888b0]">{b.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </motion.div>
     </motion.div>
