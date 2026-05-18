@@ -26,7 +26,7 @@ export const ENEMIES: Fighter[] = [
   { id: 'npc_10', name: 'Liquidator Prime', exchange: 'Hyperliquid', type: 'boss', level: 10, hp: 600, maxHp: 600, atk: 50, def: 25, color: '#00e6ff', spritePath: '/sprites/v2/boss_hyperliquid.png', spriteEmoji: '💀' },
 ];
 
-export function calculateDamage(attacker: Fighter, defender: Fighter): number {
+export function calculateDamage(attacker: Fighter, defender: Fighter): { damage: number, isCrit: boolean } {
   const baseDamage = attacker.atk;
   const defense = defender.def;
   // Variación del 10%
