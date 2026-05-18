@@ -130,17 +130,17 @@ export default function TradePanel() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       {/* ===== LEFT: Chart + Stats ===== */}
       <div className="lg:col-span-2 space-y-4">
-        {/* Symbol Tabs + Trading info */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1">
+        {/* Symbol Tabs + Trading info — Game console header */}
+        <div className="flex items-center justify-between gap-2 glass-card !py-2 !px-3 !rounded-xl">
+          <div className="flex gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none">
             {CRYPTO_SYMBOLS.map((sym) => (
               <button
                 key={sym}
                 onClick={() => setSelectedSymbol(sym)}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
+                className={`px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 border ${
                   selectedSymbol === sym
-                    ? 'glass text-[#818cf8] shadow-sm'
-                    : 'text-[#5c5c80] hover:text-white hover:bg-white/[0.03]'
+                    ? 'bg-[rgba(99,102,241,0.15)] text-[#818cf8] border-[rgba(99,102,241,0.3)] shadow-[0_0_12px_rgba(99,102,241,0.15)]'
+                    : 'text-[#5c5c80] hover:text-white hover:bg-white/[0.03] border-transparent'
                 }`}
               >
                 {sym}/USDT
@@ -157,9 +157,17 @@ export default function TradePanel() {
           )}
         </div>
 
-        {/* Chart */}
-        <div className="glass-card !p-4">
+        {/* Chart — Game console screen */}
+        <div className="glass-card !p-0 overflow-hidden border-2 border-[rgba(99,102,241,0.08)]">
+          <div className="bg-[rgba(5,5,15,0.6)] px-3 py-1.5 flex items-center gap-1.5 border-b border-[rgba(99,102,241,0.06)]">
+            <span className="w-2 h-2 rounded-full bg-[#ef4466]" />
+            <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+            <span className="w-2 h-2 rounded-full bg-[#22d65e]" />
+            <span className="text-[9px] text-[#5c5c80] ml-2">{selectedSymbol}/USDT · Gráfica en tiempo real</span>
+          </div>
+          <div className="p-3 sm:p-4">
             <Chart symbol={selectedSymbol} onPriceUpdate={handlePriceUpdate} activeTrades={activeTrades} />
+          </div>
         </div>
 
         {/* Stats grid */}
@@ -405,11 +413,11 @@ export default function TradePanel() {
           )}
         </div>
 
-        {/* New Trade */}
-        <div className="glass-card !p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp size={15} className="text-[#f0b90b]" />
-            <span className="text-sm font-bold text-white">Nuevo Trade</span>
+        {/* New Trade — Game console panel */}
+        <div className="glass-card !p-4 border border-[rgba(99,102,241,0.06)]">
+          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-[rgba(99,102,241,0.06)]">
+            <TrendingUp size={14} className="text-[#f0b90b]" />
+            <span className="text-sm font-bold text-white tracking-wide uppercase text-[11px]">📋 Terminal de Trading</span>
           </div>
 
           {/* Type toggle */}
@@ -432,27 +440,27 @@ export default function TradePanel() {
             </button>
           </div>
 
-          {/* Side */}
+          {/* Side — Game-style toggle */}
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => setSide('long')}
               className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
                 side === 'long'
-                  ? 'bg-[rgba(34,214,94,0.12)] text-[#22d65e] border border-[rgba(34,214,94,0.2)]'
-                  : 'text-[#5c5c80] hover:bg-[rgba(34,214,94,0.05)]'
+                  ? 'bg-[rgba(34,214,94,0.12)] text-[#22d65e] border border-[rgba(34,214,94,0.25)] shadow-[0_0_12px_rgba(34,214,94,0.08)]'
+                  : 'text-[#5c5c80] hover:bg-[rgba(34,214,94,0.05)] border border-transparent'
               }`}
             >
-              ▲ Long
+              ▲ LONG
             </button>
             <button
               onClick={() => setSide('short')}
               className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
                 side === 'short'
-                  ? 'bg-[rgba(239,68,102,0.12)] text-[#ef4466] border border-[rgba(239,68,102,0.2)]'
-                  : 'text-[#5c5c80] hover:bg-[rgba(239,68,102,0.05)]'
+                  ? 'bg-[rgba(239,68,102,0.12)] text-[#ef4466] border border-[rgba(239,68,102,0.25)] shadow-[0_0_12px_rgba(239,68,102,0.08)]'
+                  : 'text-[#5c5c80] hover:bg-[rgba(239,68,102,0.05)] border border-transparent'
               }`}
             >
-              ▼ Short
+              ▼ SHORT
             </button>
           </div>
 

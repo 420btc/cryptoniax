@@ -49,13 +49,13 @@ export default function MapboxGlobe() {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    if (!MAPBOX_TOKEN) { setMapError(true); return; }
 
     let map: any;
     let mounted = true;
 
+    // Dynamic import only when token exists — avoids Vercel build error
     import('mapbox-gl').then((mapboxgl) => {
-      if (!mounted || !containerRef.current) return;
-      if (!MAPBOX_TOKEN) { setMapError(true); return; }
 
       (mapboxgl as any).accessToken = MAPBOX_TOKEN;
 

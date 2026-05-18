@@ -15,7 +15,7 @@ import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
-const PROTECTED_ROUTES = ['/dashboard', '/world', '/battles', '/housing'];
+const PROTECTED_ROUTES = ['/battles', '/housing'];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading, isGuest } = useAuth();

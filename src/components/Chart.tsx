@@ -421,13 +421,13 @@ export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Prop
       </div>
 
       {/* Multi-pane chart */}
-      <div className="w-full rounded-xl overflow-hidden border border-[rgba(99,102,241,0.06)]" style={{ height: chartHeight }}>
-        <div ref={mainRef} style={{ width: '100%', height: 300 }} />
-        <div ref={volumeRef} style={{ width: '100%', height: 80 }} className="border-t border-[rgba(99,102,241,0.06)]" />
-        <div ref={macdRef} style={{ width: '100%', height: 130 }} className="border-t border-[rgba(99,102,241,0.06)] relative">
+      <div className="w-full rounded-xl overflow-hidden border border-[rgba(99,102,241,0.06)]">
+        <div ref={mainRef} className="h-[250px] sm:h-[300px]" style={{ width: '100%' }} />
+        <div ref={volumeRef} className="h-[60px] sm:h-[80px]" style={{ width: '100%' }} />
+        <div ref={macdRef} className="h-[100px] sm:h-[130px] relative" style={{ width: '100%' }}>
           <div className="absolute top-1 left-2 text-[9px] text-[#818cf8] opacity-50 pointer-events-none z-10">MACD (12,26,9)</div>
         </div>
-        <div ref={rsiRef} style={{ width: '100%', height: 110 }} className="border-t border-[rgba(99,102,241,0.06)] relative">
+        <div ref={rsiRef} className="h-[80px] sm:h-[110px] relative" style={{ width: '100%' }}>
           <div className="absolute top-1 left-2 text-[9px] text-[#f59e0b] opacity-50 pointer-events-none z-10">RSI (14)</div>
         </div>
       </div>
