@@ -11,7 +11,7 @@ export default function DashboardPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="bg-dashboard-dark rounded-2xl p-4 -m-2"
+      className="space-y-5"
     >
       <motion.div
         initial={{ opacity: 0, y: -10 }}

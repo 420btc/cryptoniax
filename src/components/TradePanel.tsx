@@ -82,13 +82,13 @@ export default function TradePanel() {
       {/* ===== LEFT: Chart + Stats ===== */}
       <div className="lg:col-span-2 space-y-4">
         {/* Symbol Tabs + Trading info */}
-        <div className="flex items-center justify-between">
-          <div className="flex gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1">
             {CRYPTO_SYMBOLS.map((sym) => (
               <button
                 key={sym}
                 onClick={() => setSelectedSymbol(sym)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
                   selectedSymbol === sym
                     ? 'glass text-[#818cf8] shadow-sm'
                     : 'text-[#5c5c80] hover:text-white hover:bg-white/[0.03]'
@@ -371,12 +371,12 @@ export default function TradePanel() {
           {tradeType === 'futures' && (
             <div className="mb-4">
               <label className="text-[10px] text-[#5c5c80] font-medium mb-1.5 block">Apalancamiento</label>
-              <div className="flex gap-1">
+              <div className="flex gap-0.5 sm:gap-1 flex-wrap">
                 {[1, 2, 3, 5, 10, 20, 50, 100].map((lev) => (
                   <button
                     key={lev}
                     onClick={() => setLeverage(lev)}
-                    className={`flex-1 py-1.5 rounded text-[10px] font-medium transition-all ${
+                    className={`px-2 sm:flex-1 py-1.5 rounded text-[10px] sm:text-[10px] font-medium transition-all ${
                       leverage === lev ? 'glass text-[#818cf8]' : 'text-[#5c5c80] hover:text-white'
                     }`}
                   >
