@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import { Globe, MapPin } from 'lucide-react';
+import { getHouseStyle, HOUSE_LEVELS } from '@/lib/gameLogic';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
@@ -15,14 +16,24 @@ interface PlayerMarker {
   color: string;
   level: number;
   online: boolean;
+  houseStyle: string;
+  houseLevel: number;
 }
+
+const HOUSE_EMOJI: Record<string, string> = {
+  tent: '🏕️',
+  wood_house: '🪵',
+  stone_house: '🏠',
+  mansion: '🏛️',
+  castle: '🏰',
+};
 
 export default function MapboxGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [loaded, setLoaded] = useState(false);
   const { profile } = useAuthStore();
-  const { activeTrades } = usePortfolioStore();
+  const { activeTrades, house } = usePortfolioStore();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -59,9 +70,10 @@ export default function MapboxGlobe() {
           'star-intensity': 0.6,
         });
 
-        // Add markers
-        const markers = getPlayerMarkers(profile?.email);
+        // Add player markers
+        const markers = getPlayerMarkers(profile?.email, house?.style, house?.level);
         markers.forEach((p) => {
+          // Player dot
           const el = document.createElement('div');
           el.className = 'map-marker';
           el.style.cssText = `
@@ -78,6 +90,7 @@ export default function MapboxGlobe() {
             <div style="color:#d0d0e0;font-size:12px;font-family:Inter,sans-serif">
               <strong style="color:white">${p.username}</strong>
               <div style="color:#5c5c80;font-size:10px">Lv.${p.level} · ${p.online ? '🟢 Online' : '⚫ Offline'}</div>
+              <div style="color:#fbbf24;font-size:10px;margin-top:2px">${HOUSE_EMOJI[p.houseStyle] || '🏚️'} ${p.houseStyle.replace('_',' ')} Nv.${p.houseLevel}</div>
             </div>
           `);
 
@@ -85,6 +98,25 @@ export default function MapboxGlobe() {
             .setLngLat([p.lng, p.lat])
             .setPopup(popup)
             .addTo(map);
+
+          // House marker (slightly offset)
+          if (HOUSE_EMOJI[p.houseStyle]) {
+            const houseEl = document.createElement('div');
+            houseEl.style.cssText = `
+              font-size: 18px;
+              cursor: pointer;
+              filter: drop-shadow(0 0 4px rgba(251,191,36,0.4));
+              transform: translate(-50%, -100%);
+              position: absolute;
+              pointer-events: none;
+            `;
+            houseEl.textContent = HOUSE_EMOJI[p.houseStyle];
+
+            // Add house as a separate marker slightly above
+            const houseMarker = new mapboxgl.Marker({ element: houseEl, anchor: 'bottom' })
+              .setLngLat([p.lng + 0.3, p.lat + 0.15])
+              .addTo(map);
+          }
         });
 
         setLoaded(true);
@@ -110,7 +142,7 @@ export default function MapboxGlobe() {
       mounted = false;
       if (map) map.remove();
     };
-  }, [profile]);
+  }, [profile, house]);
 
   return (
     <div className="glass-card !p-0 overflow-hidden">
@@ -125,6 +157,7 @@ export default function MapboxGlobe() {
         <div className="flex items-center gap-3 text-[10px] text-[#5c5c80]">
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#22d65e]" /> Online</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#5c5c80]" /> Offline</span>
+          <span className="flex items-center gap-1">🏰 Casas</span>
         </div>
       </div>
       <div ref={containerRef} style={{ width: '100%', height: 500 }} />
@@ -137,18 +170,21 @@ export default function MapboxGlobe() {
   );
 }
 
-// Mock players around the world
-function getPlayerMarkers(currentUser?: string): PlayerMarker[] {
+// Mock players around the world with houses
+function getPlayerMarkers(currentUser?: string, userHouseStyle?: string, userHouseLevel?: number): PlayerMarker[] {
+  const houseStyles = ['tent', 'wood_house', 'stone_house', 'mansion', 'castle'];
+  const randomHouse = () => houseStyles[Math.floor(Math.random() * houseStyles.length)];
+
   const markers: PlayerMarker[] = [
-    { id: 'p1', username: 'CryptoKing', lng: -74.006, lat: 40.7128, color: '#00e6ff', level: 5, online: true },
-    { id: 'p2', username: 'HodlQueen', lng: -0.1278, lat: 51.5074, color: '#f7a600', level: 3, online: true },
-    { id: 'p3', username: 'SolanaWolf', lng: 139.6917, lat: 35.6895, color: '#ff007a', level: 4, online: true },
-    { id: 'p4', username: 'BTCMaxi', lng: 151.2093, lat: -33.8688, color: '#f0b90b', level: 6, online: false },
-    { id: 'p5', username: 'EthSurfer', lng: 2.3522, lat: 48.8566, color: '#00e6ff', level: 2, online: true },
-    { id: 'p6', username: 'TradeWizard', lng: 37.6173, lat: 55.7558, color: '#f0b90b', level: 7, online: true },
-    { id: 'p7', username: 'DiamondHands', lng: -99.1332, lat: 19.4326, color: '#f7a600', level: 3, online: false },
-    { id: 'p8', username: 'MoonBoy', lng: 126.978, lat: 37.5665, color: '#ff007a', level: 1, online: true },
-    { id: 'p9', username: 'CryptoNinja', lng: 103.8198, lat: 1.3521, color: '#00e6ff', level: 4, online: true },
+    { id: 'p1', username: 'CryptoKing', lng: -74.006, lat: 40.7128, color: '#00e6ff', level: 5, online: true, houseStyle: 'mansion', houseLevel: 12 },
+    { id: 'p2', username: 'HodlQueen', lng: -0.1278, lat: 51.5074, color: '#f7a600', level: 3, online: true, houseStyle: 'stone_house', houseLevel: 7 },
+    { id: 'p3', username: 'SolanaWolf', lng: 139.6917, lat: 35.6895, color: '#ff007a', level: 4, online: true, houseStyle: 'wood_house', houseLevel: 4 },
+    { id: 'p4', username: 'BTCMaxi', lng: 151.2093, lat: -33.8688, color: '#f0b90b', level: 6, online: false, houseStyle: 'castle', houseLevel: 16 },
+    { id: 'p5', username: 'EthSurfer', lng: 2.3522, lat: 48.8566, color: '#00e6ff', level: 2, online: true, houseStyle: 'tent', houseLevel: 2 },
+    { id: 'p6', username: 'TradeWizard', lng: 37.6173, lat: 55.7558, color: '#f0b90b', level: 7, online: true, houseStyle: 'mansion', houseLevel: 11 },
+    { id: 'p7', username: 'DiamondHands', lng: -99.1332, lat: 19.4326, color: '#f7a600', level: 3, online: false, houseStyle: 'stone_house', houseLevel: 6 },
+    { id: 'p8', username: 'MoonBoy', lng: 126.978, lat: 37.5665, color: '#ff007a', level: 1, online: true, houseStyle: 'tent', houseLevel: 1 },
+    { id: 'p9', username: 'CryptoNinja', lng: 103.8198, lat: 1.3521, color: '#00e6ff', level: 4, online: true, houseStyle: 'wood_house', houseLevel: 3 },
   ];
 
   if (currentUser) {
@@ -160,6 +196,8 @@ function getPlayerMarkers(currentUser?: string): PlayerMarker[] {
       color: '#22d65e',
       level: 1,
       online: true,
+      houseStyle: userHouseStyle || 'tent',
+      houseLevel: userHouseLevel || 1,
     });
   }
 
