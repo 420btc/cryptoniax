@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Wallet, Chrome, ArrowRight, UserPlus, Sparkles, Shield, Swords } from 'lucide-react';
+import { X, Wallet, UserPlus, ArrowRight, Sparkles, Shield, Swords, Chrome } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -12,10 +12,10 @@ interface Props {
 }
 
 export default function LoginModal({ isOpen, onClose, trigger }: Props) {
-  const { signInWithGoogle, connectMetaMask, signInAsGuest } = useAuth();
+  const { connectMetaMask, signInAsGuest } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(isOpen);
-  const [bgLoaded, setBgLoaded] = useState(true);
+  const [step, setStep] = useState<'choose' | 'metamask'>('choose');
 
   useEffect(() => { setModalOpen(isOpen); }, [isOpen]);
 
@@ -26,12 +26,6 @@ export default function LoginModal({ isOpen, onClose, trigger }: Props) {
   }
 
   if (!modalOpen) return null;
-
-  const handleGoogle = async () => {
-    setLoading('google');
-    try { await signInWithGoogle(); } catch (e) { console.error(e); }
-    setLoading(null);
-  };
 
   const handleMetaMask = async () => {
     setLoading('metamask');
@@ -62,31 +56,20 @@ export default function LoginModal({ isOpen, onClose, trigger }: Props) {
           <img
             src="/sprites/v2/cover_login.png"
             alt=""
-            className="w-full h-full object-cover opacity-20"
-            onError={() => setBgLoaded(false)}
+            className="w-full h-full object-cover opacity-15"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a1a] via-[#0a0a1a]/60 to-transparent" />
         </div>
 
         {/* Ambient particles */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: 15 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <motion.div
               key={i}
               className="absolute w-0.5 h-0.5 bg-[#818cf8] rounded-full"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -30, 0],
-                opacity: [0, 1, 0],
-              }}
-              transition={{
-                duration: 2 + Math.random() * 3,
-                repeat: Infinity,
-                delay: Math.random() * 3,
-              }}
+              style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
+              animate={{ y: [0, -30, 0], opacity: [0, 1, 0] }}
+              transition={{ duration: 2 + Math.random() * 3, repeat: Infinity, delay: Math.random() * 3 }}
             />
           ))}
         </div>
@@ -99,21 +82,8 @@ export default function LoginModal({ isOpen, onClose, trigger }: Props) {
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           className="relative z-10 glass-card !p-8 w-full max-w-md overflow-hidden"
         >
-          {/* Animated border */}
-          <div className="absolute inset-0 rounded-3xl pointer-events-none"
-            style={{
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(240,185,11,0.1), rgba(34,214,94,0.1), rgba(99,102,241,0.15))',
-              mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-              maskComposite: 'exclude',
-              padding: '1px',
-            }}
-          />
-
           {/* Close */}
-          <button
-            onClick={close}
-            className="absolute top-4 right-4 z-10 w-8 h-8 rounded-lg flex items-center justify-center text-[#5c5c80] hover:text-white hover:bg-[rgba(255,255,255,0.05)] transition"
-          >
+          <button onClick={close} className="absolute top-4 right-4 z-10 w-8 h-8 rounded-lg flex items-center justify-center text-[#5c5c80] hover:text-white hover:bg-[rgba(255,255,255,0.05)] transition">
             <X size={15} />
           </button>
 
@@ -133,16 +103,16 @@ export default function LoginModal({ isOpen, onClose, trigger }: Props) {
               <span className="text-gradient">Ville</span>
             </h2>
             <p className="text-[#8888b0] text-sm">
-              Donde tus trades construyen tu reino
+              Conecta tu billetera y construye tu reino
             </p>
           </div>
 
-          {/* Quick features */}
+          {/* Features */}
           <div className="flex justify-center gap-4 mb-7">
             {[
-              { icon: <Swords size={11} />, label: 'PvE', color: '#ef4466' },
-              { icon: <Shield size={11} />, label: 'Trading', color: '#f0b90b' },
-              { icon: <Sparkles size={11} />, label: 'Housing', color: '#22d65e' },
+              { icon: <Swords size={11} />, label: 'Trading', color: '#f0b90b' },
+              { icon: <Shield size={11} />, label: 'Gestión', color: '#818cf8' },
+              { icon: <Sparkles size={11} />, label: 'Batallas', color: '#ef4466' },
             ].map((f, i) => (
               <div key={i} className="flex items-center gap-1.5 text-[10px] text-[#5c5c80]">
                 <span style={{ color: f.color }}>{f.icon}</span>
@@ -153,60 +123,52 @@ export default function LoginModal({ isOpen, onClose, trigger }: Props) {
 
           {/* Buttons */}
           <div className="space-y-3">
-            {/* Guest — main CTA */}
+            {/* MetaMask — main CTA */}
             <motion.button
               whileHover={{ scale: 1.01, y: -1 }}
               whileTap={{ scale: 0.98 }}
-              onClick={handleGuest}
+              onClick={handleMetaMask}
               disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-[#6366f1] to-[#4f46e5] hover:from-[#818cf8] hover:to-[#6366f1] rounded-xl py-3.5 px-4 text-sm font-semibold text-white transition disabled:opacity-50 shadow-lg shadow-[#6366f1]/25"
+              className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-[#f6851b] to-[#e2761b] hover:from-[#ff9a3c] hover:to-[#f6851b] rounded-xl py-3.5 px-4 text-sm font-semibold text-white transition disabled:opacity-50 shadow-lg shadow-[#f6851b]/25"
             >
-              <UserPlus size={17} />
-              Entrar como Invitado
-              <ArrowRight size={15} className="ml-auto" />
+              <Wallet size={18} />
+              {loading === 'metamask' ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Conectando...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  🦊 Conectar MetaMask
+                  <ArrowRight size={16} className="ml-auto" />
+                </span>
+              )}
             </motion.button>
 
             {/* Separator */}
             <div className="flex items-center gap-3 py-1">
               <div className="flex-1 h-px bg-[rgba(99,102,241,0.1)]" />
-              <span className="text-[10px] text-[#5c5c80]">o crea tu perfil</span>
+              <span className="text-[10px] text-[#5c5c80]">o entra rápido</span>
               <div className="flex-1 h-px bg-[rgba(99,102,241,0.1)]" />
             </div>
 
-            {/* Google */}
+            {/* Guest */}
             <motion.button
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              onClick={handleGoogle}
+              onClick={handleGuest}
               disabled={loading !== null}
               className="w-full flex items-center justify-center gap-3 glass rounded-xl py-3 px-4 text-sm font-medium text-white hover:bg-[rgba(255,255,255,0.05)] transition disabled:opacity-50 group"
             >
-              <Chrome size={17} className="text-[#4285f4]" />
-              Continuar con Google
-              {loading === 'google' ? (
-                <div className="ml-auto w-4 h-4 border-2 border-[#5c5c80] border-t-white rounded-full animate-spin" />
-              ) : (
-                <ArrowRight size={15} className="ml-auto text-[#5c5c80] group-hover:text-white transition" />
-              )}
-            </motion.button>
-
-            {/* MetaMask */}
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleMetaMask}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-3 glass rounded-xl py-3 px-4 text-sm font-medium text-white hover:bg-[rgba(255,255,255,0.05)] transition disabled:opacity-50 group"
-            >
-              <Wallet size={17} className="text-[#f6851b]" />
-              Conectar MetaMask
+              <UserPlus size={17} />
+              Probar como Invitado
               <ArrowRight size={15} className="ml-auto text-[#5c5c80] group-hover:text-white transition" />
             </motion.button>
           </div>
 
           {/* Bottom text */}
           <p className="text-center text-[10px] text-[#5c5c80] mt-5">
-            Paper trading simulado · Sin valor real · Sin riesgos
+            Sin riesgos · Paper trading · Tu wallet solo para identificación
           </p>
         </motion.div>
       </div>

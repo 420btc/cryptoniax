@@ -224,7 +224,7 @@ export default function LandingPage() {
                 {
                   step: '01',
                   title: 'Conecta',
-                  desc: 'Login con Google o MetaMask. Recibes 10,000 monedas virtuales para empezar.',
+                  desc: 'Login con MetaMask o como invitado. Recibes 10,000 monedas virtuales para empezar.',
                   icon: '🔗',
                 },
                 {

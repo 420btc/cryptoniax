@@ -68,7 +68,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
                 El modo {pathname === '/dashboard' ? 'Trading' : pathname === '/world' ? 'Mundo' : pathname === '/housing' ? 'Casas' : 'Batallas'} requiere una cuenta real.
               </p>
               <p className="text-[#5c5c80] text-xs mt-3">
-                Regístrate con Google o MetaMask para tradear con datos reales, ver el globo Mapbox,
+                Conecta MetaMask para tradear con datos reales, ver el globo Mapbox,
                 batallar con tus personajes y guardar tu progreso en la nube.
               </p>
             </div>
@@ -83,8 +83,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
                 isOpen={false}
                 onClose={() => {}}
                 trigger={
-                  <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#4f46e5] text-white text-sm font-medium hover:from-[#818cf8] hover:to-[#6366f1] transition shadow-lg shadow-[#6366f1]/20">
-                    Registrarse gratis
+                  <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#f6851b] to-[#e2761b] text-white text-sm font-medium hover:from-[#ff9a3c] hover:to-[#f6851b] transition shadow-lg shadow-[#f6851b]/20">
+                    🦊 Conectar MetaMask
                   </button>
                 }
               />

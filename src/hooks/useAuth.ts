@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { supabase, signInWithGoogle as supabaseSignIn, signOut as supabaseSignOut, fetchProfile } from '@/lib/supabase';
+import { supabase, signOut as supabaseSignOut, fetchProfile, updateProfile } from '@/lib/supabase';
 import { connectMetaMask as web3Connect } from '@/lib/web3';
 import { create } from 'zustand';
 import { usePortfolioStore } from './usePortfolio';
@@ -13,7 +13,6 @@ interface AuthState {
   isGuest: boolean;
   setSession: (session: any) => void;
   setProfile: (profile: any) => void;
-  signInWithGoogle: () => Promise<void>;
   connectMetaMask: () => Promise<void>;
   signInAsGuest: () => void;
   signOut: () => Promise<void>;
@@ -29,16 +28,40 @@ export const useAuthStore = create<AuthState>((set) => ({
   setSession: (session) => set({ session }),
   setProfile: (profile) => set({ profile }),
 
-  signInWithGoogle: async () => {
-    await supabaseSignIn();
-  },
-
   connectMetaMask: async () => {
     const address = await web3Connect();
-    if (address) {
-      set({
-        profile: { wallet_address: address, email: address.slice(0, 10) + '...' },
+    if (!address) return;
+
+    // Sign in anonymously with Supabase
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      console.error('Failed to create session:', error);
+      return;
+    }
+
+    if (data?.user) {
+      const userId = data.user.id;
+      const displayName = address.slice(0, 8) + '...' + address.slice(-4);
+      
+      // Create/update profile with wallet address
+      await updateProfile(userId, {
+        wallet_address: address,
+        email: displayName,
+        avatar_url: null,
       });
+
+      set({
+        session: data.session,
+        profile: {
+          user_id: userId,
+          wallet_address: address,
+          email: displayName,
+        },
+        isGuest: false,
+        loading: false,
+      });
+
+      await usePortfolioStore.getState().initFromSupabase(userId);
     }
   },
 
@@ -78,8 +101,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
-        set({ profile: profile || { email: session.user.email } });
-        await usePortfolioStore.getState().initFromSupabase(session.user.id);
+        if (profile) {
+          set({ profile });
+          await usePortfolioStore.getState().initFromSupabase(session.user.id);
+        }
       }
     } catch (e) {
       set({ loading: false });
@@ -89,8 +114,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ session, loading: false, isGuest: false });
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
-        set({ profile: profile || { email: session.user.email } });
-        await usePortfolioStore.getState().initFromSupabase(session.user.id);
+        if (profile) {
+          set({ profile });
+          await usePortfolioStore.getState().initFromSupabase(session.user.id);
+        }
       } else {
         set({ profile: null });
         usePortfolioStore.setState({
