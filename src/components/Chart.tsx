@@ -5,11 +5,12 @@ import {
   createChart, ColorType, IChartApi, ISeriesApi,
   CandlestickData, HistogramData, LineData, Time
 } from 'lightweight-charts';
-import { CryptoSymbol } from '@/types';
+import { CryptoSymbol, Trade, EXCHANGE_THEMES } from '@/types';
 
 interface Props {
   symbol: CryptoSymbol;
   onPriceUpdate?: (price: number) => void;
+  activeTrades?: Trade[];
 }
 
 // ===================== HELPERS =====================
@@ -142,7 +143,7 @@ function generateMockData(symbol: CryptoSymbol, days: number = 90): { time: stri
 
 // ===================== COMPONENT =====================
 
-export default function Chart({ symbol, onPriceUpdate }: Props) {
+export default function Chart({ symbol, onPriceUpdate, activeTrades = [] }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentPrice, setCurrentPrice] = useState(0);
   const [priceChange, setPriceChange] = useState(0);
@@ -276,7 +277,44 @@ export default function Chart({ symbol, onPriceUpdate }: Props) {
     setMacdVal(m.hist[lastIdx] ?? 0);
     setRsiVal(rsi[lastIdx] ?? 50);
 
-    // Resize
+    // === TRADE MARKERS ===
+    const tradeSeries: ISeriesApi<'Line'>[] = [];
+    const symbolTrades = activeTrades.filter(t => t.symbol === symbol);
+    symbolTrades.forEach((trade) => {
+      const theme = EXCHANGE_THEMES[trade.exchange] || EXCHANGE_THEMES.other;
+      const color = theme.color;
+
+      // Entry line
+      const entryLine = chart.addLineSeries({
+        color, lineWidth: 2 as any, lineStyle: 0,
+        priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      const entryData = times.map(t => ({ time: t, value: trade.entry_price }));
+      entryLine.setData(entryData);
+      tradeSeries.push(entryLine);
+
+      // TP line (dashed green)
+      if (trade.tp_price) {
+        const tpLine = chart.addLineSeries({
+          color: '#22d65e', lineWidth: 1 as any, lineStyle: 2,
+          priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+        });
+        tpLine.setData(times.map(t => ({ time: t, value: trade.tp_price! })));
+        tradeSeries.push(tpLine);
+      }
+
+      // SL line (dashed red)
+      if (trade.sl_price) {
+        const slLine = chart.addLineSeries({
+          color: '#ef4466', lineWidth: 1 as any, lineStyle: 2,
+          priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+        });
+        slLine.setData(times.map(t => ({ time: t, value: trade.sl_price! })));
+        tradeSeries.push(slLine);
+      }
+    });
+
+    // // Resize
     const handleResize = () => {
       if (containerRef.current) chart.applyOptions({ width: containerRef.current.clientWidth });
     };

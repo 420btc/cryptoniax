@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/hooks/useAuth';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import Chart from './Chart';
+import LossOverlay from './LossOverlay';
 import { CRYPTO_SYMBOLS, CryptoSymbol, ExchangeType, EXCHANGE_THEMES } from '@/types';
 import {
   Activity, TrendingUp, BarChart3, Wallet, Clock, Zap, ArrowUpRight, ArrowDownRight,
@@ -23,6 +24,19 @@ export default function TradePanel() {
   const [selectedSymbol, setSelectedSymbol] = useState<CryptoSymbol>('BTC');
   const [currentPrice, setCurrentPrice] = useState(0);
   const [tradeType, setTradeType] = useState<'spot' | 'futures'>('futures');
+  const [lossOverlay, setLossOverlay] = useState<{ show: boolean; pnl: number; symbol: string }>({ show: false, pnl: 0, symbol: '' });
+
+  // Detect loss without SL
+  useEffect(() => {
+    if (closedTrades.length === 0) return;
+    const last = closedTrades[closedTrades.length - 1];
+    if (last && (last.pnl || 0) < 0 && !last.sl_price) {
+      const delay = setTimeout(() => {
+        setLossOverlay({ show: true, pnl: last.pnl || 0, symbol: last.symbol });
+      }, 200);
+      return () => clearTimeout(delay);
+    }
+  }, [closedTrades.length]);
   const [side, setSide] = useState<'long' | 'short'>('long');
   const [leverage, setLeverage] = useState(5);
   const [amount, setAmount] = useState('');
@@ -96,7 +110,7 @@ export default function TradePanel() {
 
         {/* Chart */}
         <div className="glass-card !p-4">
-          <Chart symbol={selectedSymbol} onPriceUpdate={handlePriceUpdate} />
+            <Chart symbol={selectedSymbol} onPriceUpdate={handlePriceUpdate} activeTrades={activeTrades} />
         </div>
 
         {/* Stats grid */}
@@ -431,6 +445,14 @@ export default function TradePanel() {
           </button>
         </div>
       </div>
+
+      {/* Loss Overlay */}
+      <LossOverlay
+        show={lossOverlay.show}
+        pnl={lossOverlay.pnl}
+        symbol={lossOverlay.symbol}
+        onDismiss={() => setLossOverlay({ show: false, pnl: 0, symbol: '' })}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Web3Provider } from '@/lib/web3';
 import { useAuth } from '@/hooks/useAuth';
 import { usePortfolioStore } from '@/hooks/usePortfolio';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import LoginModal from '@/components/LoginModal';
 import { Inter } from 'next/font/google';
 
@@ -42,9 +43,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-4 py-6 w-full">
         {children}
       </main>
+      <Footer />
     </>
   );
 }
